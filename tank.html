@@ -314,16 +314,23 @@
             const isMax = currentLevel >= 5;
             const cost = 100 * (currentLevel + 1);
             const canAfford = playerCredits >= cost;
-            // Generate visual pips for the upgrade level
-            const pips = Array(5).fill(0).map((_, i) => i < currentLevel ? 'bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'bg-gray-700').join('</div><div class="w-3 h-3 rounded-sm ');
+            
+            // Rebuilt pip generation to be responsive and safely contained
+            let pipsHtml = '';
+            for(let i = 0; i < 5; i++) {
+                const bgClass = i < currentLevel ? 'bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'bg-gray-700';
+                pipsHtml += `<div class="w-3 h-3 md:w-4 md:h-4 rounded-sm flex-shrink-0 ${bgClass}"></div>`;
+            }
             
             return `
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-gray-400 text-xs w-14">${statName}</span>
-                    <div class="flex gap-1"><div class="w-3 h-3 rounded-sm ${pips}"></div></div>
+                <div class="flex justify-between items-center mt-3 w-full">
+                    <span class="text-gray-400 text-xs w-14 flex-shrink-0">${statName}</span>
+                    <div class="flex gap-1 md:gap-1.5 flex-grow justify-center px-1">
+                        ${pipsHtml}
+                    </div>
                     <button onclick="upgradeStat('${tankId}', '${statKey}')"
                         ${isMax || !canAfford ? 'disabled' : ''}
-                        class="ml-2 px-2 py-1 rounded font-bold text-[10px] w-12 text-center transition ${isMax ? 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed' : (canAfford ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-md transform hover:scale-105 active:scale-95' : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed')}">
+                        class="px-2 py-1.5 rounded font-bold text-[10px] w-16 flex-shrink-0 text-center transition ${isMax ? 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed' : (canAfford ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-md transform hover:scale-105 active:scale-95' : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed')}">
                         ${isMax ? 'MAX' : cost + 'c'}
                     </button>
                 </div>
@@ -362,7 +369,7 @@
                 let upgradeUI = '';
                 if (isOwned) {
                     upgradeUI = `
-                        <div class="mt-2 pt-4 border-t border-gray-700 flex-grow">
+                        <div class="mt-2 pt-4 border-t border-gray-700 flex-grow flex flex-col justify-end w-full">
                             <div class="text-[10px] text-gray-500 font-bold tracking-widest text-center mb-1">UPGRADES</div>
                             ${renderUpgradeRow(tank.id, 'Armor', 'hp', upg.hp)}
                             ${renderUpgradeRow(tank.id, 'Speed', 'speed', upg.speed)}
@@ -372,7 +379,7 @@
                 }
 
                 const card = document.createElement('div');
-                card.className = `bg-gray-800 p-6 rounded-2xl border ${isSelected ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'border-gray-700'} flex flex-col`;
+                card.className = `bg-gray-800 p-5 md:p-6 rounded-2xl border ${isSelected ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'border-gray-700'} flex flex-col w-full overflow-hidden`;
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-2xl font-game font-bold" style="color: ${tank.color}">${tank.name}</h3>
@@ -385,11 +392,11 @@
                         <div class="flex justify-between"><span class="text-gray-400">Damage:</span> <span class="font-bold text-white">${curDmg}</span></div>
                     </div>
                     
-                    <p class="text-gray-300 text-sm mb-4 leading-relaxed ${isOwned ? 'hidden lg:block' : 'flex-grow'}">${tank.desc}</p>
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed flex-grow">${tank.desc}</p>
                     
                     ${upgradeUI}
                     
-                    <button ${!isOwned && !canAfford ? 'disabled' : ''} onclick="buyOrEquip('${tank.id}')" class="w-full mt-4 font-game font-bold py-3 rounded-xl transition-all ${btnClass}">
+                    <button ${!isOwned && !canAfford ? 'disabled' : ''} onclick="buyOrEquip('${tank.id}')" class="w-full mt-5 font-game font-bold py-3 rounded-xl transition-all ${btnClass}">
                         ${btnText}
                     </button>
                 `;
