@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arcade Tank Shooter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111827; /* Tailwind gray-900 */
+            font-family: 'Roboto', sans-serif;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        .font-game {
+            font-family: 'Orbitron', sans-serif;
+        }
+        /* Custom scrollbar for shop */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        .boss-warning-anim {
+            animation: pulse-red 1s infinite alternate;
+        }
+        @keyframes pulse-red {
+            from { box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+            to { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); border-color: #ef4444; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer">
+        
+        <div id="boss-hud" class="absolute top-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl hidden z-20">
+            <div class="bg-gray-900/95 border-2 border-red-800 p-3 rounded-xl boss-warning-anim backdrop-blur">
+                <div class="text-red-500 text-center font-game font-bold tracking-[0.3em] mb-2 text-sm animate-pulse">WARNING: ENEMY COMMANDER DEPLOYED</div>
+                <div class="w-full h-6 bg-gray-950 rounded-lg overflow-hidden border border-red-900">
+                    <div id="boss-health-bar" class="h-full bg-gradient-to-r from-red-700 via-red-500 to-red-400 transition-all duration-200" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hud" class="w-full p-4 flex justify-between items-start hidden mt-16 md:mt-0">
+            <div class="flex flex-wrap gap-4">
+                <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg">
+                    <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">ARMOR</div>
+                    <div class="w-48 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                        <div id="health-bar" class="h-full bg-green-500 transition-all duration-200" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg">
+                    <div id="ability-label" class="text-gray-400 text-xs font-bold tracking-widest mb-1 uppercase">ABILITY [SPACE]</div>
+                    <div class="w-32 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                        <div id="ability-bar" class="h-full bg-blue-500 transition-all duration-75" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg text-right min-w-[150px]">
+                <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">SCORE</div>
+                <div id="score-display" class="text-3xl font-game text-white font-bold mb-2">0</div>
+                <div class="text-yellow-500 text-xs font-bold tracking-widest mb-1">CREDITS</div>
+                <div id="hud-credits" class="text-xl font-game text-yellow-400 font-bold">0</div>
+            </div>
+        </div>
+
+        <div id="start-screen" class="interactive absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 backdrop-blur-sm z-50">
+            <div class="text-7xl mb-6">🎯🪖</div>
+            <h1 class="text-6xl font-game font-bold text-white mb-2 tracking-wider text-center">TANK <span class="text-blue-500">ASSAULT</span></h1>
+            <p class="text-gray-400 mb-6 text-lg text-center max-w-md">Survive the escalating waves and defeat the Commanders.</p>
+            
+            <div class="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded-full border border-gray-700 mb-8">
+                <span class="text-xl">💰</span>
+                <span class="text-gray-400 font-bold tracking-widest">CREDITS:</span>
+                <span id="menu-credits" class="font-game text-yellow-400 text-2xl font-bold">0</span>
+            </div>
+
+            <div class="flex gap-4 mb-8">
+                <button onclick="openShop()" class="bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-8 rounded-full border border-gray-500 shadow-lg transform transition active:scale-95 flex items-center gap-2">
+                    🛒 ARMORY
+                </button>
+                <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-game text-2xl font-bold py-4 px-12 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transform transition active:scale-95">
+                    DEPLOY TANK
+                </button>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-wrap justify-center gap-6 max-w-5xl">
+                <div class="text-center px-4"><div class="text-3xl mb-2">⌨️</div><div class="font-bold text-white">WASD</div><div class="text-sm text-gray-400">Move</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">⚡</div><div class="font-bold text-white">SPACE</div><div class="text-sm text-gray-400">Ability</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">🖱️</div><div class="font-bold text-white">MOUSE</div><div class="text-sm text-gray-400">Aim</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">👆</div><div class="font-bold text-white">CLICK</div><div class="text-sm text-gray-400">Fire</div></div>
+            </div>
+        </div>
+
+        <div id="shop-screen" class="interactive absolute inset-0 flex flex-col items-center bg-gray-900/95 backdrop-blur-md hidden z-50 p-8 overflow-y-auto">
+            <div class="flex justify-between items-center w-full max-w-6xl mb-8">
+                <h2 class="text-5xl font-game font-bold text-white tracking-wider">ARMORY</h2>
+                <div class="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded-full border border-gray-700">
+                    <span class="text-xl">💰</span>
+                    <span class="text-gray-400 font-bold tracking-widest">CREDITS:</span>
+                    <span id="shop-credits" class="font-game text-yellow-400 text-2xl font-bold">0</span>
+                </div>
+            </div>
+            
+            <div id="tank-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8">
+                </div>
+
+            <button onclick="closeShop()" class="mt-auto bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-12 rounded-full shadow-lg transform transition active:scale-95">
+                RETURN TO BASE
+            </button>
+        </div>
+
+        <div id="game-over-screen" class="interactive absolute inset-0 flex flex-col items-center justify-center bg-red-950/90 backdrop-blur-md hidden z-50">
+            <h2 class="text-6xl font-game font-bold text-white mb-2 tracking-wider">MIA</h2>
+            <p class="text-red-400 mb-8 text-xl font-bold">Your tank was destroyed!</p>
+            
+            <div class="bg-gray-900 p-8 rounded-2xl border border-red-900 mb-8 text-center shadow-2xl flex gap-12">
+                <div>
+                    <div class="text-gray-400 text-sm font-bold tracking-widest mb-2">FINAL SCORE</div>
+                    <div id="final-score" class="font-game font-bold text-white text-6xl">0</div>
+                </div>
+                <div class="border-l border-gray-800 pl-12">
+                    <div class="text-yellow-500 text-sm font-bold tracking-widest mb-2">CREDITS EARNED</div>
+                    <div id="final-credits" class="font-game font-bold text-yellow-400 text-6xl">+0</div>
+                </div>
+            </div>
+
+            <button onclick="returnToMenu()" class="bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-10 rounded-full shadow-lg transform transition active:scale-95 mb-4">
+                MAIN MENU
+            </button>
+            <button onclick="startGame()" class="bg-red-600 hover:bg-red-500 text-white font-game text-xl font-bold py-4 px-10 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.5)] transform transition active:scale-95">
+                QUICK REDEPLOY 🔄
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // UI Elements
+        const startScreen = document.getElementById('start-screen');
+        const shopScreen = document.getElementById('shop-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const hud = document.getElementById('hud');
+        
+        const scoreDisplay = document.getElementById('score-display');
+        const healthBar = document.getElementById('health-bar');
+        const abilityBar = document.getElementById('ability-bar');
+        const abilityLabel = document.getElementById('ability-label');
+        
+        const finalScore = document.getElementById('final-score');
+        const finalCredits = document.getElementById('final-credits');
+        const menuCredits = document.getElementById('menu-credits');
+        const shopCreditsText = document.getElementById('shop-credits');
+        const hudCreditsText = document.getElementById('hud-credits');
+
+        const bossHud = document.getElementById('boss-hud');
+        const bossHealthBar = document.getElementById('boss-health-bar');
+
+        // Game State
+        let isPlaying = false;
+        let animationId;
+        let score = 0;
+        let frameCount = 0;
+
+        // Boss State
+        let isBossLevel = false;
+        let bossEntity = null;
+        let nextBossTarget = 1000;
+
+        // Persistent Data (Shop System)
+        let playerCredits = 0;
+        let ownedTanks = ['assault'];
+        let selectedTankType = 'assault';
+        let sessionEarnedCredits = 0;
+        let tankUpgrades = {
+            assault: { hp: 0, speed: 0, dmg: 0 },
+            juggernaut: { hp: 0, speed: 0, dmg: 0 },
+            phantom: { hp: 0, speed: 0, dmg: 0 },
+            predator: { hp: 0, speed: 0, dmg: 0 }
+        };
+
+        // Tank Classes Configuration
+        const TANK_CLASSES = {
+            assault: {
+                id: 'assault', name: 'Assault', cost: 0,
+                color: '#3b82f6', barrelColor: '#1e40af', icon: '🚙',
+                hp: 150, speed: 3.5, fireRate: 20, bSpeed: 12, bDamage: 50,
+                ability: 'dash', abilityCooldown: 60, abilityDuration: 15,
+                desc: 'Balanced combat vehicle. <br><span class="text-blue-400 font-bold">Ability: Dash</span> (Short invincibility & speed boost).'
+            },
+            juggernaut: {
+                id: 'juggernaut', name: 'Juggernaut', cost: 500,
+                color: '#22c55e', barrelColor: '#166534', icon: '🛡️',
+                hp: 300, speed: 2.5, fireRate: 25, bSpeed: 10, bDamage: 55,
+                ability: 'shield', abilityCooldown: 400, abilityDuration: 180,
+                desc: 'Slow moving fortress. <br><span class="text-green-400 font-bold">Ability: Energy Shield</span> (Absorbs all damage for 3s).'
+            },
+            phantom: {
+                id: 'phantom', name: 'Phantom', cost: 1200,
+                color: '#eab308', barrelColor: '#a16207', icon: '⚡',
+                hp: 100, speed: 6.5, fireRate: 8, bSpeed: 16, bDamage: 15,
+                ability: 'phase', abilityCooldown: 60, abilityDuration: 10,
+                desc: 'Extremely fast & fragile. <br><span class="text-yellow-400 font-bold">Ability: Phase</span> (A lightning fast dash with quick cooldown).'
+            },
+            predator: {
+                id: 'predator', name: 'Predator', cost: 2000,
+                color: '#a855f7', barrelColor: '#7e22ce', icon: '👁️',
+                hp: 200, speed: 5.5, fireRate: 16, bSpeed: 13, bDamage: 120,
+                ability: 'cloak', abilityCooldown: 450, abilityDuration: 150,
+                desc: 'Devastating sniper rounds. <br><span class="text-purple-400 font-bold">Ability: Cloak</span> (Invisible to enemy targeting for 4s).'
+            }
+        };
+
+        // Try load from local storage
+        try {
+            const savedData = JSON.parse(localStorage.getItem('tankGameData'));
+            if (savedData) {
+                playerCredits = savedData.credits || 0;
+                ownedTanks = savedData.owned || ['assault'];
+                selectedTankType = savedData.selected || 'assault';
+                if (savedData.upgrades) tankUpgrades = savedData.upgrades;
+            }
+        } catch(e) { console.log("Local storage not available"); }
+
+        function saveData() {
+            try {
+                localStorage.setItem('tankGameData', JSON.stringify({
+                    credits: playerCredits,
+                    owned: ownedTanks,
+                    selected: selectedTankType,
+                    upgrades: tankUpgrades
+                }));
+            } catch(e) {}
+            updateCreditDisplays();
+        }
+
+        function updateCreditDisplays() {
+            menuCredits.innerText = playerCredits;
+            shopCreditsText.innerText = playerCredits;
+            hudCreditsText.innerText = playerCredits;
+        }
+
+        // Initialize UI
+        updateCreditDisplays();
+
+        // Shop UI Logic
+        function openShop() {
+            startScreen.classList.add('hidden');
+            shopScreen.classList.remove('hidden');
+            renderShop();
+        }
+
+        function closeShop() {
+            shopScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        function buyOrEquip(id) {
+            const tank = TANK_CLASSES[id];
+            if (ownedTanks.includes(id)) {
+                selectedTankType = id;
+                saveData();
+                renderShop();
+            } else if (playerCredits >= tank.cost) {
+                playerCredits -= tank.cost;
+                ownedTanks.push(id);
+                selectedTankType = id;
+                saveData();
+                renderShop();
+            }
+        }
+
+        function upgradeStat(tankId, statKey) {
+            const currentLevel = tankUpgrades[tankId][statKey];
+            if (currentLevel >= 5) return; // Max level is 5
+            const cost = 100 * (currentLevel + 1); // Cost increases per level
+            if (playerCredits >= cost) {
+                playerCredits -= cost;
+                tankUpgrades[tankId][statKey]++;
+                saveData();
+                renderShop();
+            }
+        }
+
+        function renderUpgradeRow(tankId, statName, statKey, currentLevel) {
+            const isMax = currentLevel >= 5;
+            const cost = 100 * (currentLevel + 1);
+            const canAfford = playerCredits >= cost;
+            // Generate visual pips for the upgrade level
+            const pips = Array(5).fill(0).map((_, i) => i < currentLevel ? 'bg-yellow-400 shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'bg-gray-700').join('</div><div class="w-3 h-3 rounded-sm ');
+            
+            return `
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-gray-400 text-xs w-14">${statName}</span>
+                    <div class="flex gap-1"><div class="w-3 h-3 rounded-sm ${pips}"></div></div>
+                    <button onclick="upgradeStat('${tankId}', '${statKey}')"
+                        ${isMax || !canAfford ? 'disabled' : ''}
+                        class="ml-2 px-2 py-1 rounded font-bold text-[10px] w-12 text-center transition ${isMax ? 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed' : (canAfford ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-md transform hover:scale-105 active:scale-95' : 'bg-gray-800 text-gray-500 border border-gray-700 cursor-not-allowed')}">
+                        ${isMax ? 'MAX' : cost + 'c'}
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderShop() {
+            const grid = document.getElementById('tank-grid');
+            grid.innerHTML = '';
+            
+            Object.values(TANK_CLASSES).forEach(tank => {
+                const isOwned = ownedTanks.includes(tank.id);
+                const isSelected = selectedTankType === tank.id;
+                const canAfford = playerCredits >= tank.cost;
+                const upg = tankUpgrades[tank.id];
+
+                // Calculate the modified stats based on upgrade levels
+                const curHp = Math.round(tank.hp * (1 + upg.hp * 0.20));
+                const curSpeed = (tank.speed * (1 + upg.speed * 0.10)).toFixed(1);
+                const curDmg = Math.round(tank.bDamage * (1 + upg.dmg * 0.20));
+
+                let btnClass = "";
+                let btnText = "";
+                
+                if (isSelected) {
+                    btnClass = "bg-green-600 text-white cursor-default";
+                    btnText = "EQUIPPED ✓";
+                } else if (isOwned) {
+                    btnClass = "bg-blue-600 hover:bg-blue-500 text-white transform hover:scale-105 active:scale-95";
+                    btnText = "EQUIP";
+                } else {
+                    btnClass = canAfford ? "bg-yellow-600 hover:bg-yellow-500 text-white transform hover:scale-105 active:scale-95" : "bg-gray-700 text-gray-500 cursor-not-allowed";
+                    btnText = `BUY (${tank.cost} 💰)`;
+                }
+
+                let upgradeUI = '';
+                if (isOwned) {
+                    upgradeUI = `
+                        <div class="mt-2 pt-4 border-t border-gray-700 flex-grow">
+                            <div class="text-[10px] text-gray-500 font-bold tracking-widest text-center mb-1">UPGRADES</div>
+                            ${renderUpgradeRow(tank.id, 'Armor', 'hp', upg.hp)}
+                            ${renderUpgradeRow(tank.id, 'Speed', 'speed', upg.speed)}
+                            ${renderUpgradeRow(tank.id, 'Damage', 'dmg', upg.dmg)}
+                        </div>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = `bg-gray-800 p-6 rounded-2xl border ${isSelected ? 'border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.3)]' : 'border-gray-700'} flex flex-col`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-game font-bold" style="color: ${tank.color}">${tank.name}</h3>
+                        <div class="text-3xl">${tank.icon}</div>
+                    </div>
+                    
+                    <div class="space-y-2 mb-4 text-sm bg-gray-900 p-3 rounded-xl border border-gray-700">
+                        <div class="flex justify-between"><span class="text-gray-400">Armor:</span> <span class="font-bold text-white">${curHp}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Speed:</span> <span class="font-bold text-white">${curSpeed}</span></div>
+                        <div class="flex justify-between"><span class="text-gray-400">Damage:</span> <span class="font-bold text-white">${curDmg}</span></div>
+                    </div>
+                    
+                    <p class="text-gray-300 text-sm mb-4 leading-relaxed ${isOwned ? 'hidden lg:block' : 'flex-grow'}">${tank.desc}</p>
+                    
+                    ${upgradeUI}
+                    
+                    <button ${!isOwned && !canAfford ? 'disabled' : ''} onclick="buyOrEquip('${tank.id}')" class="w-full mt-4 font-game font-bold py-3 rounded-xl transition-all ${btnClass}">
+                        ${btnText}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // Input Handling
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, ' ': false };
+        const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, isDown: false };
+
+        window.addEventListener('keydown', (e) => { 
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true; 
+        });
+        window.addEventListener('keyup', (e) => { 
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false; 
+        });
+        window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener('mousedown', () => { mouse.isDown = true; });
+        window.addEventListener('mouseup', () => { mouse.isDown = false; });
+
+        // Resize Canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game Objects
+        let player;
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+
+        class Tank {
+            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false) {
+                this.x = x;
+                this.y = y;
+                this.isPlayer = isPlayer;
+                this.isBoss = isBoss;
+                
+                if (isPlayer) {
+                    this.radius = 20;
+                    const cfg = TANK_CLASSES[typeId];
+                    const upg = tankUpgrades[typeId];
+                    
+                    this.baseSpeed = cfg.speed * (1 + upg.speed * 0.10);
+                    this.color = cfg.color;
+                    this.barrelColor = cfg.barrelColor;
+                    this.maxHealth = cfg.hp * (1 + upg.hp * 0.20);
+                    this.fireRate = cfg.fireRate;
+                    this.bulletSpeed = cfg.bSpeed;
+                    this.bulletDamage = cfg.bDamage * (1 + upg.dmg * 0.20);
+                    
+                    this.abilityType = cfg.ability;
+                    this.abilityMaxCooldown = cfg.abilityCooldown;
+                    this.abilityDuration = cfg.abilityDuration;
+                } else if (isBoss) {
+                    // BOSS STATS (HEAVILY NERFED)
+                    this.radius = 50;
+                    this.color = '#7f1d1d'; 
+                    this.barrelColor = '#450a0a';
+                    const bossLevel = Math.max(1, Math.floor(score / 1000));
+                    
+                    this.maxHealth = 600 * bossLevel; // Slashed health
+                    this.baseSpeed = 0.8 + (bossLevel * 0.05); // Very slow movement
+                    this.fireRate = Math.max(60, 100 - (bossLevel * 5)); // Much slower firing
+                    this.bulletSpeed = 4.5; // Slower bullets to allow dodging
+                    this.bulletDamage = 15 + (bossLevel * 5); // Reduced damage
+                    this.abilityType = 'none';
+                } else {
+                    // REGULAR ENEMY STATS - Scales with Score
+                    this.radius = 20;
+                    const difficultyMultiplier = Math.floor(score / 200);
+                    
+                    this.baseSpeed = 1.5 + Math.random() + (difficultyMultiplier * 0.1);
+                    this.color = '#ef4444'; 
+                    this.barrelColor = '#991b1b';
+                    this.maxHealth = 20 + (difficultyMultiplier * 15);
+                    this.fireRate = Math.max(30, 80 - (difficultyMultiplier * 5));
+                    this.bulletSpeed = 6 + (difficultyMultiplier * 0.3);
+                    this.bulletDamage = 15 + (difficultyMultiplier * 5);
+                    this.abilityType = 'none';
+                }
+
+                this.speed = this.baseSpeed;
+                this.health = this.maxHealth;
+                this.bodyAngle = 0;
+                this.turretAngle = 0;
+                this.cooldown = 0;
+                
+                // Ability State
+                this.abilityCooldown = 0;
+                this.abilityTimer = 0;
+                this.abilityActive = false;
+            }
+
+            draw() {
+                ctx.save();
+                
+                if (this.abilityActive && this.abilityType === 'cloak') ctx.globalAlpha = 0.2;
+                if (this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase')) ctx.globalAlpha = 0.5;
+                
+                ctx.translate(this.x, this.y);
+
+                if (this.abilityActive && this.abilityType === 'shield') {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 12, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
+                    ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#4ade80';
+                    ctx.stroke();
+                }
+
+                ctx.save();
+                ctx.rotate(this.bodyAngle);
+                ctx.fillStyle = '#1f2937';
+                ctx.fillRect(-this.radius - 4, -this.radius + 2, 8, this.radius * 2 - 4);
+                ctx.fillRect(this.radius - 4, -this.radius + 2, 8, this.radius * 2 - 4);
+                
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                if (this.isBoss) {
+                    ctx.moveTo(this.radius, 0);
+                    ctx.lineTo(this.radius * 0.7, this.radius);
+                    ctx.lineTo(-this.radius, this.radius);
+                    ctx.lineTo(-this.radius, -this.radius);
+                    ctx.lineTo(this.radius * 0.7, -this.radius);
+                    ctx.closePath();
+                } else {
+                    ctx.roundRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2, 8);
+                }
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = this.isBoss ? 4 : 2;
+                ctx.stroke();
+                
+                if (this.isBoss) {
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+
+                ctx.save();
+                ctx.rotate(this.turretAngle);
+                
+                ctx.fillStyle = this.barrelColor;
+                if (this.isBoss) {
+                    ctx.fillRect(0, -10, this.radius + 25, 8);
+                    ctx.strokeRect(0, -10, this.radius + 25, 8);
+                    ctx.fillRect(0, -4, this.radius + 35, 10);
+                    ctx.strokeRect(0, -4, this.radius + 35, 10);
+                    ctx.fillRect(0, 4, this.radius + 25, 8);
+                    ctx.strokeRect(0, 4, this.radius + 25, 8);
+                } else {
+                    ctx.fillRect(0, -5, this.radius + 15, 10);
+                    ctx.strokeRect(0, -5, this.radius + 15, 10);
+                }
+                
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.isBoss ? 25 : 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.restore();
+                
+                if (!this.isPlayer && !this.isBoss && this.health < this.maxHealth) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                    ctx.fillRect(-this.radius, -this.radius - 10, this.radius * 2, 5);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(-this.radius, -this.radius - 10, (this.radius * 2) * (this.health / this.maxHealth), 5);
+                }
+
+                ctx.restore();
+            }
+
+            update() {
+                if (this.cooldown > 0) this.cooldown--;
+
+                if (this.isPlayer) {
+                    if (this.abilityCooldown > 0) this.abilityCooldown--;
+                    let dx = 0, dy = 0;
+
+                    if (!this.abilityActive || (this.abilityType !== 'dash' && this.abilityType !== 'phase')) {
+                        if (keys.w || keys.ArrowUp) dy -= 1;
+                        if (keys.s || keys.ArrowDown) dy += 1;
+                        if (keys.a || keys.ArrowLeft) dx -= 1;
+                        if (keys.d || keys.ArrowRight) dx += 1;
+                    }
+
+                    if (dx !== 0 || dy !== 0) {
+                        const length = Math.sqrt(dx*dx + dy*dy);
+                        dx /= length;
+                        dy /= length;
+                    }
+
+                    if (this.abilityActive) {
+                        this.abilityTimer--;
+                        if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                            this.speed = this.abilityType === 'phase' ? 20 : 16; 
+                            if (frameCount % 2 === 0) createParticles(this.x, this.y, this.color, 1, this.bodyAngle + Math.PI, 0.5, 8, 1);
+                        } else if (this.abilityType === 'shield') {
+                            this.speed = this.baseSpeed * 0.5;
+                        }
+
+                        if (this.abilityTimer <= 0) {
+                            this.abilityActive = false;
+                            this.speed = this.baseSpeed; 
+                        }
+                    } else {
+                        if (keys[' '] && this.abilityCooldown <= 0) {
+                            if ((this.abilityType === 'dash' || this.abilityType === 'phase') && dx === 0 && dy === 0) {
+                                // Must be moving to dash
+                            } else {
+                                this.abilityActive = true;
+                                this.abilityTimer = this.abilityDuration;
+                                this.abilityCooldown = this.abilityMaxCooldown;
+                                
+                                if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                                    createParticles(this.x, this.y, '#93c5fd', 15, this.bodyAngle + Math.PI, Math.PI, 4, 8);
+                                } else if (this.abilityType === 'shield') {
+                                    createParticles(this.x, this.y, '#4ade80', 20, 0, Math.PI*2, 3, 5);
+                                } else if (this.abilityType === 'cloak') {
+                                    createParticles(this.x, this.y, '#c084fc', 30, 0, Math.PI*2, 5, 2);
+                                }
+                            }
+                        }
+                    }
+
+                    if (this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase') && dx === 0 && dy === 0) {
+                        dx = Math.cos(this.bodyAngle);
+                        dy = Math.sin(this.bodyAngle);
+                    }
+
+                    this.x += dx * this.speed;
+                    this.y += dy * this.speed;
+
+                    if (dx !== 0 || dy !== 0) {
+                        this.bodyAngle = Math.atan2(dy, dx);
+                    }
+
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+
+                    this.turretAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+
+                    let isDashing = this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase');
+
+                    if (!isDashing && mouse.isDown && this.cooldown <= 0) {
+                        this.shoot();
+                    }
+                } else {
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (player.abilityActive && player.abilityType === 'cloak') {
+                        this.turretAngle += 0.02;
+                        this.x += Math.cos(this.bodyAngle) * this.speed * 0.5;
+                        this.y += Math.sin(this.bodyAngle) * this.speed * 0.5;
+                        if (this.cooldown <= 0 && Math.random() < 0.01) this.shoot();
+                    } else {
+                        this.turretAngle = Math.atan2(dy, dx);
+                        const stopDistance = this.isBoss ? 100 : 150;
+                        
+                        if (dist > stopDistance) {
+                            this.bodyAngle = this.turretAngle;
+                            this.x += Math.cos(this.bodyAngle) * this.speed;
+                            this.y += Math.sin(this.bodyAngle) * this.speed;
+                        }
+
+                        const shootRange = this.isBoss ? 800 : 500;
+                        if (this.cooldown <= 0 && dist < shootRange) {
+                            this.shoot();
+                            this.cooldown = this.isBoss ? this.fireRate : this.fireRate + (Math.random() * 40 - 20); 
+                        }
+                    }
+
+                    enemies.forEach(other => {
+                        if (other === this) return;
+                        const edx = this.x - other.x;
+                        const edy = this.y - other.y;
+                        const edist = Math.sqrt(edx*edx + edy*edy);
+                        if (edist < this.radius + other.radius + 10) {
+                            if (this.isBoss && !other.isBoss) return; 
+                            this.x += (edx / edist) * 1;
+                            this.y += (edy / edist) * 1;
+                        }
+                    });
+                    
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+                }
+            }
+
+            shoot() {
+                if (this.isBoss) {
+                    const spreadAngles = [-0.2, 0, 0.2];
+                    spreadAngles.forEach(offset => {
+                        const angle = this.turretAngle + offset;
+                        const tipX = this.x + Math.cos(angle) * (this.radius + 15);
+                        const tipY = this.y + Math.sin(angle) * (this.radius + 15);
+                        bullets.push(new Bullet(tipX, tipY, angle, this.bulletSpeed, this.color, false, this.bulletDamage, false));
+                    });
+                    createParticles(this.x + Math.cos(this.turretAngle)*this.radius, this.y + Math.sin(this.turretAngle)*this.radius, '#f87171', 15, this.turretAngle + Math.PI, 1.5, 4);
+                } else {
+                    const tipX = this.x + Math.cos(this.turretAngle) * (this.radius + 15);
+                    const tipY = this.y + Math.sin(this.turretAngle) * (this.radius + 15);
+                    bullets.push(new Bullet(tipX, tipY, this.turretAngle, this.bulletSpeed, this.isPlayer ? this.color : '#f87171', this.isPlayer, this.bulletDamage, this.isPlayer && this.abilityType === 'cloak' ? true : false));
+                    createParticles(tipX, tipY, this.isPlayer ? this.color : '#f87171', 4, this.turretAngle + Math.PI, 1.5, 3);
+                }
+                
+                this.cooldown = this.fireRate;
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle, speed, color, isPlayer, damage, isCloakedShot) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.color = color;
+                this.isPlayer = isPlayer;
+                this.radius = damage > 35 ? 8 : 4; 
+                this.life = 150; 
+                this.damage = damage;
+                this.isCloakedShot = isCloakedShot;
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                if (this.isCloakedShot) ctx.globalAlpha = 0.5;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.globalAlpha = 1.0;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color, speed, angle, size) {
+                this.x = x;
+                this.y = y;
+                this.vx = Math.cos(angle) * speed * Math.random();
+                this.vy = Math.sin(angle) * speed * Math.random();
+                this.color = color;
+                this.radius = Math.random() * size + 1;
+                this.life = 1.0; 
+                this.decay = Math.random() * 0.05 + 0.02;
+            }
+
+            draw() {
+                ctx.globalAlpha = this.life;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= this.decay;
+            }
+        }
+
+        function createParticles(x, y, color, count, angleBase = 0, spread = Math.PI * 2, size = 4, speed = 5) {
+            for (let i = 0; i < count; i++) {
+                const angle = angleBase + (Math.random() - 0.5) * spread;
+                particles.push(new Particle(x, y, color, speed, angle, size));
+            }
+        }
+
+        function spawnBoss() {
+            isBossLevel = true;
+            
+            // Clear regular enemies for the cinematic duel
+            enemies.forEach(e => createParticles(e.x, e.y, '#ef4444', 15, 0, Math.PI*2, 4, 4));
+            enemies = [];
+            
+            bossHud.classList.remove('hidden');
+            
+            // Spawn top center
+            bossEntity = new Tank(canvas.width / 2, -50, false, null, true);
+            enemies.push(bossEntity);
+        }
+
+        function spawnEnemy() {
+            if (isBossLevel) return; // Stop regular spawns during boss fight
+
+            // Check if it's time for a boss (every 1000 points)
+            if (score >= nextBossTarget && !isBossLevel) {
+                spawnBoss();
+                return;
+            }
+
+            // Cap maximum enemies on screen instead of making them spawn faster indefinitely
+            const maxEnemies = 5; 
+            
+            // Steady spawn rate
+            const spawnRate = 80; 
+            
+            if (frameCount % spawnRate === 0 && enemies.length < maxEnemies) {
+                let ex, ey;
+                if (Math.random() > 0.5) {
+                    ex = Math.random() > 0.5 ? -50 : canvas.width + 50;
+                    ey = Math.random() * canvas.height;
+                } else {
+                    ex = Math.random() * canvas.width;
+                    ey = Math.random() > 0.5 ? -50 : canvas.height + 50;
+                }
+                
+                const enemy = new Tank(ex, ey, false);
+                enemies.push(enemy);
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = isBossLevel ? '#450a0a' : '#1f2937'; // Grid turns red during boss
+            ctx.lineWidth = 1;
+            const gridSize = 50;
+            
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        function updateHUD() {
+            if (!player) return;
+
+            scoreDisplay.innerText = score;
+            hudCreditsText.innerText = playerCredits;
+
+            // Health Bar
+            const healthPct = Math.max(0, (player.health / player.maxHealth) * 100);
+            healthBar.style.width = `${healthPct}%`;
+            
+            if (healthPct > 60) healthBar.className = "h-full bg-green-500 transition-all duration-200";
+            else if (healthPct > 30) healthBar.className = "h-full bg-yellow-500 transition-all duration-200";
+            else healthBar.className = "h-full bg-red-600 transition-all duration-200 animate-pulse";
+
+            // Ability Bar Update
+            abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability} [SPACE]`;
+            let abilityPct = 0;
+            
+            if (player.abilityActive) {
+                abilityPct = (player.abilityTimer / player.abilityDuration) * 100;
+                abilityBar.className = "h-full bg-white shadow-[0_0_10px_white]";
+            } else {
+                abilityPct = player.abilityCooldown <= 0 ? 100 : 100 - (player.abilityCooldown / player.abilityMaxCooldown) * 100;
+                if (abilityPct >= 100) {
+                    abilityBar.className = "h-full bg-blue-500";
+                } else {
+                    abilityBar.className = "h-full bg-gray-500";
+                }
+            }
+            abilityBar.style.width = `${abilityPct}%`;
+
+            // Boss Health Bar
+            if (isBossLevel && bossEntity) {
+                const bossPct = Math.max(0, (bossEntity.health / bossEntity.maxHealth) * 100);
+                bossHealthBar.style.width = `${bossPct}%`;
+            }
+        }
+
+        function startGame() {
+            resize();
+            player = new Tank(canvas.width / 2, canvas.height / 2, true, selectedTankType);
+            bullets = [];
+            enemies = [];
+            particles = [];
+            score = 0;
+            nextBossTarget = 1000;
+            isBossLevel = false;
+            bossEntity = null;
+            sessionEarnedCredits = 0;
+            frameCount = 0;
+            
+            bossHud.classList.add('hidden');
+            updateHUD();
+
+            startScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            hud.classList.remove('hidden');
+
+            isPlaying = true;
+            gameLoop();
+        }
+
+        function returnToMenu() {
+            gameOverScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+            updateCreditDisplays();
+        }
+
+        function endGame() {
+            isPlaying = false;
+            hud.classList.add('hidden');
+            bossHud.classList.add('hidden');
+            gameOverScreen.classList.remove('hidden');
+            
+            finalScore.innerText = score;
+            finalCredits.innerText = `+${sessionEarnedCredits}`;
+            
+            saveData(); 
+            
+            createParticles(player.x, player.y, player.color, 60, 0, Math.PI * 2, 8, 12);
+            createParticles(player.x, player.y, '#ffffff', 30, 0, Math.PI * 2, 6, 15);
+        }
+
+        function checkCollisions() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                let hit = false;
+
+                // Enemy bullet hits Player
+                if (!b.isPlayer) {
+                    const dx = b.x - player.x;
+                    const dy = b.y - player.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < player.radius + b.radius) {
+                        
+                        if (player.abilityActive && (player.abilityType === 'dash' || player.abilityType === 'phase')) {
+                            if (frameCount % 3 === 0) createParticles(b.x, b.y, '#93c5fd', 2, 0, Math.PI*2, 2, 3);
+                            continue; 
+                        }
+                        
+                        if (player.abilityActive && player.abilityType === 'shield') {
+                            createParticles(b.x, b.y, '#4ade80', 5, 0, Math.PI*2, 2, 4);
+                            bullets.splice(i, 1); 
+                            continue;
+                        }
+
+                        player.health -= b.damage;
+                        createParticles(b.x, b.y, player.color, 10);
+                        bullets.splice(i, 1);
+                        
+                        if (player.health <= 0) {
+                            endGame();
+                            return; 
+                        }
+                        continue;
+                    }
+                }
+
+                // Player bullet hits Enemy
+                if (b.isPlayer) {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        const dx = b.x - e.x;
+                        const dy = b.y - e.y;
+                        if (Math.sqrt(dx*dx + dy*dy) < e.radius + b.radius) {
+                            e.health -= b.damage;
+                            createParticles(b.x, b.y, '#ef4444', 10);
+                            
+                            // Sniper pierces
+                            if (player.abilityType !== 'cloak') {
+                                bullets.splice(i, 1);
+                                hit = true;
+                            }
+                            
+                            if (e.health <= 0) {
+                                // Boss Death Logic
+                                if (e.isBoss) {
+                                    createParticles(e.x, e.y, '#ef4444', 100, 0, Math.PI*2, 10, 15);
+                                    createParticles(e.x, e.y, '#f97316', 50, 0, Math.PI*2, 8, 10);
+                                    isBossLevel = false;
+                                    bossEntity = null;
+                                    bossHud.classList.add('hidden');
+                                    nextBossTarget += 1000;
+                                    
+                                    score += 500; // Big score bump
+                                    playerCredits += 250; // Huge payout
+                                    sessionEarnedCredits += 250;
+                                } else {
+                                    createParticles(e.x, e.y, '#ef4444', 30, 0, Math.PI*2, 6, 8);
+                                    createParticles(e.x, e.y, '#f97316', 20, 0, Math.PI*2, 4, 6);
+                                    
+                                    score += 100;
+                                    playerCredits += 10;
+                                    sessionEarnedCredits += 10;
+                                }
+
+                                enemies.splice(j, 1);
+                                hudCreditsText.innerText = playerCredits;
+                            }
+                            
+                            if (hit) break; 
+                        }
+                    }
+                    if (hit) continue;
+                }
+            }
+        }
+
+        function gameLoop() {
+            if (!isPlaying) return;
+            
+            // Screen flashes red when boss is active
+            if (isBossLevel) {
+                ctx.fillStyle = `rgba(20, 10, 10, 0.9)`;
+            } else {
+                ctx.fillStyle = '#111827';
+            }
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            updateHUD();
+            
+            frameCount++;
+            spawnEnemy();
+
+            player.update();
+            player.draw();
+
+            for (let e of enemies) {
+                e.update();
+                e.draw();
+            }
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.update();
+                b.draw();
+                if (b.life <= 0 || b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw();
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            checkCollisions();
+
+            if (isPlaying) {
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Setup
+        ctx.fillStyle = '#111827';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawGrid();
+
+    </script>
+</body>
+</html>
