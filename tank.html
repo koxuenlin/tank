@@ -212,6 +212,70 @@
     </div>
 
     <script>
+        // --- Web Audio Sound System ---
+        const SoundFX = {
+            ctx: null,
+            init: function() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+            playTone: function(freq, type, duration, vol=0.1, slideFreq=null) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                if (slideFreq) {
+                    osc.frequency.exponentialRampToValueAtTime(slideFreq, this.ctx.currentTime + duration);
+                }
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            },
+            playNoise: function(duration, vol=0.1) {
+                if (!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1; // White noise
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const gain = this.ctx.createGain();
+                
+                // Lowpass filter to give explosions that bassy crunch
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1000;
+                
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            },
+            shoot: function() { this.playTone(600, 'square', 0.15, 0.03, 100); },
+            bossShoot: function() { this.playTone(200, 'square', 0.25, 0.05, 50); },
+            hit: function() { this.playTone(150, 'sawtooth', 0.1, 0.02, 50); },
+            bounce: function() { this.playTone(400, 'triangle', 0.1, 0.02, 200); },
+            explosion: function() { this.playNoise(0.5, 0.15); },
+            bossExplosion: function() { this.playNoise(1.5, 0.3); },
+            heal: function() { this.playTone(400, 'sine', 0.4, 0.05, 800); },
+            dash: function() { this.playTone(200, 'triangle', 0.2, 0.04, 600); },
+            shield: function() { this.playTone(800, 'sine', 0.3, 0.04, 400); },
+            ui: function() { this.playTone(800, 'sine', 0.05, 0.05); }
+        };
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -410,6 +474,8 @@
         }
 
         function toggleWalls() {
+            SoundFX.init();
+            SoundFX.ui();
             wallsEnabled = !wallsEnabled;
             updateWallToggleUI();
             saveData();
@@ -441,17 +507,23 @@
 
         // Shop UI Logic
         function openShop() {
+            SoundFX.init();
+            SoundFX.ui();
             startScreen.classList.add('hidden');
             shopScreen.classList.remove('hidden');
             renderShop();
         }
 
         function closeShop() {
+            SoundFX.init();
+            SoundFX.ui();
             shopScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
         }
 
         function buyOrEquip(id) {
+            SoundFX.init();
+            SoundFX.ui();
             const tank = TANK_CLASSES[id];
             if (ownedTanks.includes(id)) {
                 selectedTankType = id;
@@ -467,6 +539,8 @@
         }
 
         function upgradeStat(tankId, statKey) {
+            SoundFX.init();
+            SoundFX.ui();
             const currentLevel = tankUpgrades[tankId][statKey];
             if (currentLevel >= 5) return; // Max level is 5
             const cost = 100 * (currentLevel + 1); // Cost increases per level
@@ -1033,11 +1107,15 @@
                                 this.abilityCooldown = this.abilityMaxCooldown;
                                 
                                 if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                                    SoundFX.dash();
                                     createParticles(this.x, this.y, '#93c5fd', 15, this.bodyAngle + Math.PI, Math.PI, 4, 8);
-                                } else if (this.abilityType === 'shield') {
-                                    createParticles(this.x, this.y, '#4ade80', 20, 0, Math.PI*2, 3, 5);
-                                } else if (this.abilityType === 'cloak') {
-                                    createParticles(this.x, this.y, '#c084fc', 30, 0, Math.PI*2, 5, 2);
+                                } else if (this.abilityType === 'shield' || this.abilityType === 'cloak') {
+                                    SoundFX.shield();
+                                    if (this.abilityType === 'shield') {
+                                        createParticles(this.x, this.y, '#4ade80', 20, 0, Math.PI*2, 3, 5);
+                                    } else {
+                                        createParticles(this.x, this.y, '#c084fc', 30, 0, Math.PI*2, 5, 2);
+                                    }
                                 }
                             }
                         }
@@ -1151,10 +1229,13 @@
                             this.abilityCooldown = this.abilityMaxCooldown + Math.random() * 100;
                             
                             if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                                SoundFX.dash();
                                 createParticles(this.x, this.y, '#93c5fd', 15, this.bodyAngle + Math.PI, Math.PI, 4, 8);
                             } else if (this.abilityType === 'shield') {
+                                SoundFX.shield();
                                 createParticles(this.x, this.y, '#4ade80', 20, 0, Math.PI*2, 3, 5);
                             } else if (this.abilityType === 'cloak') {
+                                SoundFX.shield();
                                 createParticles(this.x, this.y, '#c084fc', 30, 0, Math.PI*2, 5, 2);
                             }
                         }
@@ -1220,6 +1301,7 @@
 
             shoot() {
                 if (this.isBoss) {
+                    SoundFX.bossShoot();
                     const spreadAngles = this.isMilestoneBoss ? [-0.3, -0.15, 0, 0.15, 0.3] : [-0.2, 0, 0.2];
                     spreadAngles.forEach(offset => {
                         const angle = this.turretAngle + offset;
@@ -1229,6 +1311,7 @@
                     });
                     createParticles(this.x + Math.cos(this.turretAngle)*this.radius, this.y + Math.sin(this.turretAngle)*this.radius, '#f87171', 15, this.turretAngle + Math.PI, 1.5, 4);
                 } else {
+                    SoundFX.shoot();
                     const tipX = this.x + Math.cos(this.turretAngle) * (this.radius + 15);
                     const tipY = this.y + Math.sin(this.turretAngle) * (this.radius + 15);
                     bullets.push(new Bullet(tipX, tipY, this.turretAngle, this.bulletSpeed, this.isPlayer ? this.color : '#f87171', this.isPlayer, this.bulletDamage, this.isPlayer && this.abilityType === 'cloak' ? true : false, this.passive));
@@ -1575,6 +1658,8 @@
         }
 
         function continueGame() {
+            SoundFX.init();
+            SoundFX.ui();
             levelUpScreen.classList.add('hidden');
             
             if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
@@ -1594,6 +1679,8 @@
         }
 
         function startGame() {
+            SoundFX.init();
+            SoundFX.ui();
             resize();
             generateWalls();
             player = new Tank(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, true, selectedTankType);
@@ -1625,6 +1712,8 @@
         }
 
         function returnToMenu() {
+            SoundFX.init();
+            SoundFX.ui();
             gameOverScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
             updateCreditDisplays();
@@ -1632,6 +1721,7 @@
 
         function endGame() {
             isPlaying = false;
+            SoundFX.explosion();
             hud.classList.add('hidden');
             bossHud.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
@@ -1679,6 +1769,7 @@
                         b.bounces++;
                         b.x += b.vx; 
                         b.y += b.vy;
+                        SoundFX.bounce();
                         createParticles(b.x, b.y, '#fbbf24', 5, 0, Math.PI*2, 2, 4);
                         continue; 
                     } else {
@@ -1699,6 +1790,7 @@
                         }
                         
                         if (player.abilityActive && player.abilityType === 'shield') {
+                            SoundFX.bounce();
                             createParticles(b.x, b.y, '#4ade80', 5, 0, Math.PI*2, 2, 4);
                             bullets.splice(i, 1); 
                             continue;
@@ -1706,10 +1798,12 @@
 
                         // Apply splash damage if enemy shot an explosive round
                         if (b.passive === 'explosive') {
+                            SoundFX.explosion();
                             createParticles(b.x, b.y, '#f97316', 30, 0, Math.PI*2, 8, 10);
                             createParticles(b.x, b.y, '#fbbf24', 20, 0, Math.PI*2, 5, 12);
                             player.health -= b.damage * 1.5; 
                         } else {
+                            SoundFX.hit();
                             player.health -= b.damage;
                         }
                         
@@ -1748,6 +1842,7 @@
                             
                             // Check Elite Shield
                             if (e.abilityActive && e.abilityType === 'shield') {
+                                SoundFX.bounce();
                                 createParticles(b.x, b.y, '#4ade80', 5, 0, Math.PI*2, 2, 4);
                                 bullets.splice(i, 1);
                                 hit = true;
@@ -1756,6 +1851,7 @@
 
                             // Passive: Explosive Rounds
                             if (b.passive === 'explosive') {
+                                SoundFX.explosion();
                                 createParticles(b.x, b.y, '#f97316', 30, 0, Math.PI*2, 8, 10);
                                 createParticles(b.x, b.y, '#fbbf24', 20, 0, Math.PI*2, 5, 12);
                                 
@@ -1770,6 +1866,7 @@
                                 break;
                             }
 
+                            SoundFX.hit();
                             e.health -= b.damage;
                             createParticles(b.x, b.y, '#ef4444', 10);
                             
@@ -1790,6 +1887,7 @@
                 const e = enemies[j];
                 if (e.health <= 0) {
                     if (e.isBoss) {
+                        SoundFX.bossExplosion();
                         createParticles(e.x, e.y, '#ef4444', 100, 0, Math.PI*2, 10, 15);
                         createParticles(e.x, e.y, '#f97316', 50, 0, Math.PI*2, 8, 10);
                         isBossLevel = false;
@@ -1804,6 +1902,7 @@
                         currentLevel++;
                         showLevelUpScreen();
                     } else if (e.isHealer) {
+                        SoundFX.heal();
                         createParticles(e.x, e.y, '#22c55e', 40, 0, Math.PI*2, 6, 8);
                         createParticles(e.x, e.y, '#ffffff', 20, 0, Math.PI*2, 4, 6);
                         
@@ -1812,6 +1911,7 @@
                         
                         score += 50;
                     } else if (e.isElite) {
+                        SoundFX.explosion();
                         createParticles(e.x, e.y, e.color, 50, 0, Math.PI*2, 6, 10);
                         createParticles(e.x, e.y, '#ffffff', 20, 0, Math.PI*2, 4, 6);
                         
@@ -1819,6 +1919,7 @@
                         playerCredits += 50;
                         sessionEarnedCredits += 50;
                     } else {
+                        SoundFX.explosion();
                         createParticles(e.x, e.y, '#ef4444', 30, 0, Math.PI*2, 6, 8);
                         createParticles(e.x, e.y, '#f97316', 20, 0, Math.PI*2, 4, 6);
                         
