@@ -678,12 +678,13 @@
         let particles = [];
 
         class Tank {
-            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false) {
+            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false, isElite = false) {
                 this.x = x;
                 this.y = y;
                 this.isPlayer = isPlayer;
                 this.isBoss = isBoss;
                 this.isHealer = isHealer;
+                this.isElite = isElite;
                 this.isMilestoneBoss = false;
                 
                 if (isPlayer) {
@@ -742,6 +743,24 @@
                     this.bulletDamage = 0;
                     this.abilityType = 'none';
                     this.passive = 'none';
+                } else if (isElite) {
+                    this.radius = 24; // Elites are slightly larger
+                    const powerScale = 1 + ((currentLevel - 1) * 0.20);
+                    const cfg = TANK_CLASSES[typeId];
+                    
+                    this.baseSpeed = (1.5 + Math.random()) * Math.min(1.5, powerScale);
+                    this.color = cfg.color; 
+                    this.barrelColor = cfg.barrelColor;
+                    
+                    this.maxHealth = 50 * powerScale; // Tankier than normal minions
+                    this.fireRate = Math.max(35, 90 / powerScale);
+                    this.bulletSpeed = 6 * Math.min(1.5, powerScale);
+                    this.bulletDamage = 20 * powerScale;
+                    
+                    this.abilityType = cfg.ability;
+                    this.abilityMaxCooldown = cfg.abilityCooldown * 2; // Double cooldown for enemies
+                    this.abilityDuration = cfg.abilityDuration;
+                    this.passive = cfg.passive || 'none';
                 } else {
                     this.radius = 20;
                     const powerScale = 1 + ((currentLevel - 1) * 0.20);
@@ -789,6 +808,20 @@
                     ctx.lineWidth = 3;
                     ctx.strokeStyle = '#4ade80';
                     ctx.stroke();
+                }
+
+                // Elite target ring
+                if (this.isElite) {
+                    ctx.save();
+                    ctx.rotate(frameCount * 0.05);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([8, 8]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
                 }
 
                 ctx.save();
@@ -1088,6 +1121,52 @@
                     const dy = player.y - this.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     
+                    // --- Enemy Ability Processing ---
+                    if (this.abilityCooldown > 0) this.abilityCooldown--;
+
+                    if (this.abilityActive) {
+                        this.abilityTimer--;
+                        if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                            this.speed = this.abilityType === 'phase' ? this.baseSpeed * 2.5 : this.baseSpeed * 2;
+                            if (frameCount % 2 === 0) createParticles(this.x, this.y, this.color, 1, this.bodyAngle + Math.PI, 0.5, 8, 1);
+                        } else if (this.abilityType === 'shield') {
+                            this.speed = this.baseSpeed * 0.5;
+                        }
+
+                        if (this.abilityTimer <= 0) {
+                            this.abilityActive = false;
+                            this.speed = this.baseSpeed; 
+                        }
+                    } else if (this.isElite && this.abilityCooldown <= 0) {
+                        // Elite AI Ability Triggers
+                        let shouldUse = false;
+                        if (this.abilityType === 'shield' && this.health < this.maxHealth * 0.4) shouldUse = true;
+                        else if (this.abilityType === 'dash' && dist > 400 && Math.random() < 0.02) shouldUse = true;
+                        else if (this.abilityType === 'phase' && dist > 300 && Math.random() < 0.02) shouldUse = true;
+                        else if (this.abilityType === 'cloak' && Math.random() < 0.01) shouldUse = true;
+
+                        if (shouldUse) {
+                            this.abilityActive = true;
+                            this.abilityTimer = this.abilityDuration;
+                            this.abilityCooldown = this.abilityMaxCooldown + Math.random() * 100;
+                            
+                            if (this.abilityType === 'dash' || this.abilityType === 'phase') {
+                                createParticles(this.x, this.y, '#93c5fd', 15, this.bodyAngle + Math.PI, Math.PI, 4, 8);
+                            } else if (this.abilityType === 'shield') {
+                                createParticles(this.x, this.y, '#4ade80', 20, 0, Math.PI*2, 3, 5);
+                            } else if (this.abilityType === 'cloak') {
+                                createParticles(this.x, this.y, '#c084fc', 30, 0, Math.PI*2, 5, 2);
+                            }
+                        }
+                    }
+
+                    // Passive: Regen for Elites
+                    if (this.passive === 'regen' && frameCount % 60 === 0 && this.health < this.maxHealth) {
+                        this.health = Math.min(this.maxHealth, this.health + (this.maxHealth * 0.05));
+                        createParticles(this.x, this.y, '#10b981', 3, 0, Math.PI*2, 3, 2);
+                    }
+
+                    // --- AI Movement ---
                     if (player.abilityActive && player.abilityType === 'cloak') {
                         this.turretAngle += 0.02;
                         let moveRes = this.moveWithCollision(Math.cos(this.bodyAngle) * this.speed * 0.5, Math.sin(this.bodyAngle) * this.speed * 0.5);
@@ -1357,13 +1436,21 @@
                 } while (!validSpawn && attempts < 20);
                 
                 let isHealer = false;
+                let isElite = false;
+                let eliteType = 'assault';
+
                 // Only spawn healers up to the max limit per level
                 if (healersSpawnedThisLevel < maxHealersThisLevel && Math.random() < 0.10 && !enemies.some(e => e.isHealer)) {
                     isHealer = true;
                     healersSpawnedThisLevel++;
+                } else if (currentLevel >= 2 && Math.random() < 0.25) {
+                    // 25% chance for an elite after level 1
+                    isElite = true;
+                    const types = Object.keys(TANK_CLASSES);
+                    eliteType = types[Math.floor(Math.random() * types.length)];
                 }
                 
-                const enemy = new Tank(ex, ey, false, 'assault', false, isHealer);
+                const enemy = new Tank(ex, ey, false, isElite ? eliteType : 'assault', false, isHealer, isElite);
                 enemies.push(enemy);
             }
         }
@@ -1453,10 +1540,12 @@
             for (let e of enemies) {
                 if (e.isHealer) {
                     minimapCtx.fillStyle = '#22c55e';
+                } else if (e.isElite) {
+                    minimapCtx.fillStyle = e.color; // Show Elites as their distinct class color
                 } else {
                     minimapCtx.fillStyle = e.isBoss ? '#7f1d1d' : '#ef4444';
                 }
-                const size = e.isBoss ? 6 : 3;
+                const size = e.isBoss ? 6 : (e.isElite ? 4 : 3);
                 minimapCtx.fillRect(e.x * scaleX - size/2, e.y * scaleY - size/2, size, size);
             }
 
@@ -1615,7 +1704,24 @@
                             continue;
                         }
 
-                        player.health -= b.damage;
+                        // Apply splash damage if enemy shot an explosive round
+                        if (b.passive === 'explosive') {
+                            createParticles(b.x, b.y, '#f97316', 30, 0, Math.PI*2, 8, 10);
+                            createParticles(b.x, b.y, '#fbbf24', 20, 0, Math.PI*2, 5, 12);
+                            player.health -= b.damage * 1.5; 
+                        } else {
+                            player.health -= b.damage;
+                        }
+                        
+                        // Apply enemy lifesteal
+                        if (b.passive === 'lifesteal') {
+                            const vampire = enemies.find(e => e.isElite && e.passive === 'lifesteal');
+                            if (vampire) {
+                                vampire.health = Math.min(vampire.maxHealth, vampire.health + 15);
+                                createParticles(vampire.x, vampire.y, '#9f1239', 10, 0, Math.PI*2, 3, 4);
+                            }
+                        }
+
                         createParticles(b.x, b.y, player.color, 10);
                         bullets.splice(i, 1);
                         
@@ -1634,6 +1740,20 @@
                         const dy = b.y - e.y;
                         if (Math.sqrt(dx*dx + dy*dy) < e.radius + b.radius) {
                             
+                            // Check Elite Invincibility
+                            if (e.abilityActive && (e.abilityType === 'dash' || e.abilityType === 'phase')) {
+                                if (frameCount % 3 === 0) createParticles(b.x, b.y, e.color, 2, 0, Math.PI*2, 2, 3);
+                                continue; 
+                            }
+                            
+                            // Check Elite Shield
+                            if (e.abilityActive && e.abilityType === 'shield') {
+                                createParticles(b.x, b.y, '#4ade80', 5, 0, Math.PI*2, 2, 4);
+                                bullets.splice(i, 1);
+                                hit = true;
+                                break;
+                            }
+
                             // Passive: Explosive Rounds
                             if (b.passive === 'explosive') {
                                 createParticles(b.x, b.y, '#f97316', 30, 0, Math.PI*2, 8, 10);
@@ -1691,6 +1811,13 @@
                         player.health = Math.min(player.maxHealth, player.health + healAmount);
                         
                         score += 50;
+                    } else if (e.isElite) {
+                        createParticles(e.x, e.y, e.color, 50, 0, Math.PI*2, 6, 10);
+                        createParticles(e.x, e.y, '#ffffff', 20, 0, Math.PI*2, 4, 6);
+                        
+                        score += 250;
+                        playerCredits += 50;
+                        sessionEarnedCredits += 50;
                     } else {
                         createParticles(e.x, e.y, '#ef4444', 30, 0, Math.PI*2, 6, 8);
                         createParticles(e.x, e.y, '#f97316', 20, 0, Math.PI*2, 4, 6);
