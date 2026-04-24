@@ -100,10 +100,12 @@
             </div>
 
             <div class="flex flex-col gap-4 items-end pointer-events-none">
+                <!-- Minimap Radar -->
                 <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-2 rounded-xl shadow-lg pointer-events-none">
                     <div class="text-gray-400 text-[10px] font-bold tracking-widest mb-1 text-center">RADAR</div>
                     <canvas id="minimapCanvas" width="120" height="120" class="rounded bg-gray-900/80 border border-gray-700"></canvas>
                 </div>
+                
                 <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg text-right min-w-[120px] md:min-w-[150px] pointer-events-none">
                     <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">SCORE</div>
                     <div id="score-display" class="text-2xl md:text-3xl font-game text-white font-bold mb-2">0</div>
@@ -232,7 +234,7 @@
         const levelUpScreen = document.getElementById('level-up-screen');
         const nextLevelDisplay = document.getElementById('next-level-display');
         const levelCountdownDisplay = document.getElementById('level-countdown');
-
+        
         const minimapCanvas = document.getElementById('minimapCanvas');
         const minimapCtx = minimapCanvas.getContext('2d');
 
@@ -242,11 +244,13 @@
         let score = 0;
         let frameCount = 0;
         let currentLevel = 1;
+        let healersSpawnedThisLevel = 0;
+        let maxHealersThisLevel = 1;
 
         // Boss State
         let isBossLevel = false;
         let bossEntity = null;
-        let nextBossTarget = 2000; // Increased to 2000
+        let nextBossTarget = 2000; // Boss target
 
         // Persistent Data (Shop System)
         let playerCredits = 0;
@@ -567,11 +571,12 @@
         let particles = [];
 
         class Tank {
-            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false) {
+            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false) {
                 this.x = x;
                 this.y = y;
                 this.isPlayer = isPlayer;
                 this.isBoss = isBoss;
+                this.isHealer = isHealer;
                 this.isMilestoneBoss = false;
                 
                 if (isPlayer) {
@@ -591,19 +596,17 @@
                     this.abilityMaxCooldown = cfg.abilityCooldown;
                     this.abilityDuration = cfg.abilityDuration;
                 } else if (isBoss) {
-                    // Boss gains a flat 20% power bump for each level
                     let bossScale = 1 + ((currentLevel - 1) * 0.20);
                     
-                    // Every 5 levels, apply a massive 2x compounding multiplier
                     let spikeMultiplier = Math.pow(2, Math.floor(currentLevel / 5));
                     bossScale *= spikeMultiplier;
                     
                     this.isMilestoneBoss = (currentLevel % 5 === 0);
 
                     if (this.isMilestoneBoss) {
-                        this.radius = 80; // Massive tank
-                        this.color = '#450a0a'; // Very dark red
-                        this.barrelColor = '#000000'; // Black barrels
+                        this.radius = 80; 
+                        this.color = '#450a0a'; 
+                        this.barrelColor = '#000000'; 
                     } else {
                         this.radius = 60;
                         this.color = '#7f1d1d'; 
@@ -611,10 +614,22 @@
                     }
                     
                     this.maxHealth = 1000 * bossScale; 
-                    this.baseSpeed = Math.min(2.5, 0.8 + (bossScale * 0.05)); // Cap speed
-                    this.fireRate = Math.max(25, 90 / Math.sqrt(bossScale)); // Fires much faster as scale increases
+                    this.baseSpeed = Math.min(2.5, 0.8 + (bossScale * 0.05)); 
+                    this.fireRate = Math.max(25, 90 / Math.sqrt(bossScale)); 
                     this.bulletSpeed = Math.min(12, 4.5 + (bossScale * 0.5)); 
                     this.bulletDamage = 20 * bossScale; 
+                    this.abilityType = 'none';
+                } else if (isHealer) {
+                    this.radius = 20;
+                    const powerScale = 1 + ((currentLevel - 1) * 0.20);
+                    
+                    this.baseSpeed = 2.5 + (Math.random() * 1.5);
+                    this.color = '#22c55e'; // Green
+                    this.barrelColor = '#166534';
+                    this.maxHealth = 150 * powerScale;
+                    this.fireRate = Infinity; 
+                    this.bulletSpeed = 0;
+                    this.bulletDamage = 0;
                     this.abilityType = 'none';
                 } else {
                     this.radius = 20;
@@ -711,6 +726,10 @@
                     ctx.arc(0, 0, 10, 0, Math.PI*2);
                     ctx.fill();
                     ctx.stroke();
+                } else if (this.isHealer) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-this.radius * 0.4, -this.radius * 0.1, this.radius * 0.8, this.radius * 0.2);
+                    ctx.fillRect(-this.radius * 0.1, -this.radius * 0.4, this.radius * 0.2, this.radius * 0.8);
                 }
                 
                 ctx.restore();
@@ -864,6 +883,36 @@
                     if (!isDashing && mouse.isDown && this.cooldown <= 0) {
                         this.shoot();
                     }
+                } else if (this.isHealer) {
+                    const dx = player.x - this.x;
+                    const dy = player.y - this.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    
+                    this.turretAngle += 0.05; 
+                    
+                    if (dist < 600) {
+                        this.bodyAngle = Math.atan2(-dy, -dx);
+                        this.x += Math.cos(this.bodyAngle) * this.speed;
+                        this.y += Math.sin(this.bodyAngle) * this.speed;
+                    } else {
+                        if (frameCount % 60 === 0) this.bodyAngle = Math.random() * Math.PI * 2;
+                        this.x += Math.cos(this.bodyAngle) * (this.speed * 0.5);
+                        this.y += Math.sin(this.bodyAngle) * (this.speed * 0.5);
+                    }
+
+                    enemies.forEach(other => {
+                        if (other === this) return;
+                        const edx = this.x - other.x;
+                        const edy = this.y - other.y;
+                        const edist = Math.sqrt(edx*edx + edy*edy);
+                        if (edist < this.radius + other.radius + 10) {
+                            this.x += (edx / edist) * 1;
+                            this.y += (edy / edist) * 1;
+                        }
+                    });
+                    
+                    this.x = Math.max(this.radius, Math.min(WORLD_WIDTH - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(WORLD_HEIGHT - this.radius, this.y));
                 } else {
                     const dx = player.x - this.x;
                     const dy = player.y - this.y;
@@ -1035,7 +1084,14 @@
                     attempts++;
                 } while (Math.hypot(ex - player.x, ey - player.y) < Math.max(canvas.width, canvas.height) * 0.8 && attempts < 10);
                 
-                const enemy = new Tank(ex, ey, false);
+                let isHealer = false;
+                // Only spawn healers up to the max limit per level
+                if (healersSpawnedThisLevel < maxHealersThisLevel && Math.random() < 0.10 && !enemies.some(e => e.isHealer)) {
+                    isHealer = true;
+                    healersSpawnedThisLevel++;
+                }
+                
+                const enemy = new Tank(ex, ey, false, 'assault', false, isHealer);
                 enemies.push(enemy);
             }
         }
@@ -1075,7 +1131,7 @@
             else if (healthPct > 30) healthBar.className = "h-full bg-yellow-500 transition-all duration-200";
             else healthBar.className = "h-full bg-red-600 transition-all duration-200 animate-pulse";
 
-            abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability} [SPACE]`;
+            abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability}`;
             let abilityPct = 0;
             
             if (player.abilityActive) {
@@ -1095,6 +1151,39 @@
                 const bossPct = Math.max(0, (bossEntity.health / bossEntity.maxHealth) * 100);
                 bossHealthBar.style.width = `${bossPct}%`;
             }
+        }
+
+        function drawMinimap() {
+            if (!player) return;
+            const mW = minimapCanvas.width;
+            const mH = minimapCanvas.height;
+            
+            minimapCtx.clearRect(0, 0, mW, mH);
+            
+            const scaleX = mW / WORLD_WIDTH;
+            const scaleY = mH / WORLD_HEIGHT;
+
+            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            minimapCtx.lineWidth = 1;
+            minimapCtx.strokeRect(camera.x * scaleX, camera.y * scaleY, canvas.width * scaleX, canvas.height * scaleY);
+
+            minimapCtx.fillStyle = 'rgba(245, 158, 11, 0.8)'; 
+            for (let b of bullets) {
+                minimapCtx.fillRect(b.x * scaleX - 1, b.y * scaleY - 1, 2, 2);
+            }
+
+            for (let e of enemies) {
+                if (e.isHealer) {
+                    minimapCtx.fillStyle = '#22c55e';
+                } else {
+                    minimapCtx.fillStyle = e.isBoss ? '#7f1d1d' : '#ef4444';
+                }
+                const size = e.isBoss ? 6 : 3;
+                minimapCtx.fillRect(e.x * scaleX - size/2, e.y * scaleY - size/2, size, size);
+            }
+
+            minimapCtx.fillStyle = '#3b82f6'; 
+            minimapCtx.fillRect(player.x * scaleX - 2, player.y * scaleY - 2, 4, 4);
         }
 
         function showLevelUpScreen() {
@@ -1128,6 +1217,10 @@
             enemies = [];
             bullets = [];
             
+            // Reset healer spawn counters for the new round
+            healersSpawnedThisLevel = 0;
+            maxHealersThisLevel = Math.random() < 0.10 ? 2 : 1; // 10% chance for 2 healers, otherwise 1
+            
             isPlaying = true;
             gameLoop();
         }
@@ -1145,6 +1238,10 @@
             bossEntity = null;
             sessionEarnedCredits = 0;
             frameCount = 0;
+            
+            // Initialize healer tracking
+            healersSpawnedThisLevel = 0;
+            maxHealersThisLevel = Math.random() < 0.10 ? 2 : 1;
             
             bossHud.classList.add('hidden');
             levelUpScreen.classList.add('hidden');
@@ -1243,6 +1340,14 @@
                                     
                                     currentLevel++;
                                     showLevelUpScreen();
+                                } else if (e.isHealer) {
+                                    createParticles(e.x, e.y, '#22c55e', 40, 0, Math.PI*2, 6, 8);
+                                    createParticles(e.x, e.y, '#ffffff', 20, 0, Math.PI*2, 4, 6);
+                                    
+                                    const healAmount = 40 * (1 + ((currentLevel - 1) * 0.20));
+                                    player.health = Math.min(player.maxHealth, player.health + healAmount);
+                                    
+                                    score += 50;
                                 } else {
                                     createParticles(e.x, e.y, '#ef4444', 30, 0, Math.PI*2, 6, 8);
                                     createParticles(e.x, e.y, '#f97316', 20, 0, Math.PI*2, 4, 6);
@@ -1323,46 +1428,13 @@
 
             checkCollisions();
 
-            drawMinimap();
-
             ctx.restore();
+            
+            drawMinimap();
 
             if (isPlaying) {
                 animationId = requestAnimationFrame(gameLoop);
             }
-        }
-
-        function drawMinimap() {
-            if (!player) return;
-            const mW = minimapCanvas.width;
-            const mH = minimapCanvas.height;
-            
-            minimapCtx.clearRect(0, 0, mW, mH);
-            
-            const scaleX = mW / WORLD_WIDTH;
-            const scaleY = mH / WORLD_HEIGHT;
-
-            // Draw Camera Viewport Outline
-            minimapCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            minimapCtx.lineWidth = 1;
-            minimapCtx.strokeRect(camera.x * scaleX, camera.y * scaleY, canvas.width * scaleX, canvas.height * scaleY);
-
-            // Draw Bullets
-            minimapCtx.fillStyle = 'rgba(245, 158, 11, 0.8)'; // Amber
-            for (let b of bullets) {
-                minimapCtx.fillRect(b.x * scaleX - 1, b.y * scaleY - 1, 2, 2);
-            }
-
-            // Draw Enemies
-            for (let e of enemies) {
-                minimapCtx.fillStyle = e.isBoss ? '#7f1d1d' : '#ef4444';
-                const size = e.isBoss ? 6 : 3;
-                minimapCtx.fillRect(e.x * scaleX - size/2, e.y * scaleY - size/2, size, size);
-            }
-
-            // Draw Player
-            minimapCtx.fillStyle = '#3b82f6'; // Blue
-            minimapCtx.fillRect(player.x * scaleX - 2, player.y * scaleY - 2, 4, 4);
         }
 
         ctx.fillStyle = '#111827';
