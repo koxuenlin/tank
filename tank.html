@@ -1072,7 +1072,8 @@
                 return;
             }
 
-            const maxEnemies = 5; 
+            // Increase max enemies by 1 every level
+            const maxEnemies = 5 + (currentLevel - 1); 
             const spawnRate = 80; 
             
             if (frameCount % spawnRate === 0 && enemies.length < maxEnemies) {
