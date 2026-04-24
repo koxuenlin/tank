@@ -261,7 +261,11 @@
             assault: { hp: 0, speed: 0, dmg: 0 },
             juggernaut: { hp: 0, speed: 0, dmg: 0 },
             phantom: { hp: 0, speed: 0, dmg: 0 },
-            predator: { hp: 0, speed: 0, dmg: 0 }
+            predator: { hp: 0, speed: 0, dmg: 0 },
+            inferno: { hp: 0, speed: 0, dmg: 0 },
+            goliath: { hp: 0, speed: 0, dmg: 0 },
+            vortex: { hp: 0, speed: 0, dmg: 0 },
+            spectre: { hp: 0, speed: 0, dmg: 0 }
         };
 
         // Joystick Input States
@@ -297,6 +301,34 @@
                 hp: 200, speed: 5.5, fireRate: 16, bSpeed: 13, bDamage: 80,
                 ability: 'cloak', abilityCooldown: 450, abilityDuration: 150,
                 desc: 'Devastating sniper rounds. <br><span class="text-purple-400 font-bold">Ability: Cloak</span> (Invisible to enemy targeting for 4s).'
+            },
+            inferno: {
+                id: 'inferno', name: 'Inferno', cost: 4000,
+                color: '#f97316', barrelColor: '#c2410c', icon: '🔥',
+                hp: 180, speed: 4.0, fireRate: 5, bSpeed: 11, bDamage: 15,
+                ability: 'dash', abilityCooldown: 80, abilityDuration: 20,
+                desc: 'High rate of fire, creating a wall of bullets. <br><span class="text-blue-400 font-bold">Ability: Dash</span> (Short invincibility & speed boost).'
+            },
+            goliath: {
+                id: 'goliath', name: 'Goliath', cost: 8000,
+                color: '#64748b', barrelColor: '#334155', icon: '🏰',
+                hp: 500, speed: 1.8, fireRate: 40, bSpeed: 15, bDamage: 130,
+                ability: 'shield', abilityCooldown: 500, abilityDuration: 200,
+                desc: 'An absolute unit of a tank. Extremely slow but practically indestructible. <br><span class="text-green-400 font-bold">Ability: Energy Shield</span> (Absorbs all damage for 3s).'
+            },
+            vortex: {
+                id: 'vortex', name: 'Vortex', cost: 12000,
+                color: '#06b6d4', barrelColor: '#0891b2', icon: '🌀',
+                hp: 120, speed: 5.0, fireRate: 12, bSpeed: 20, bDamage: 60,
+                ability: 'phase', abilityCooldown: 70, abilityDuration: 12,
+                desc: 'Advanced energy weapons with rapid mobility. <br><span class="text-yellow-400 font-bold">Ability: Phase</span> (A lightning fast dash with quick cooldown).'
+            },
+            spectre: {
+                id: 'spectre', name: 'Spectre', cost: 20000,
+                color: '#4b5563', barrelColor: '#1f2937', icon: '👻',
+                hp: 180, speed: 6.0, fireRate: 15, bSpeed: 25, bDamage: 100,
+                ability: 'cloak', abilityCooldown: 400, abilityDuration: 200,
+                desc: 'The ultimate stealth assassin vehicle. <br><span class="text-purple-400 font-bold">Ability: Cloak</span> (Invisible to enemy targeting for 4s).'
             }
         };
 
@@ -307,7 +339,13 @@
                 playerCredits = savedData.credits || 0;
                 ownedTanks = savedData.owned || ['assault'];
                 selectedTankType = savedData.selected || 'assault';
-                if (savedData.upgrades) tankUpgrades = savedData.upgrades;
+                if (savedData.upgrades) {
+                    for (let key in savedData.upgrades) {
+                        if (tankUpgrades[key]) {
+                            tankUpgrades[key] = savedData.upgrades[key];
+                        }
+                    }
+                }
             }
         } catch(e) { console.log("Local storage not available"); }
 
