@@ -55,24 +55,6 @@
 
     <div class="ui-layer">
         
-        <!-- Mobile Touch Controls -->
-        <div id="mobile-controls" class="absolute inset-0 pointer-events-none hidden z-30">
-            <!-- Left Joystick (Move) -->
-            <div id="joystick-left-zone" class="absolute bottom-8 left-8 w-32 h-32 bg-gray-800/60 rounded-full border-2 border-gray-600 pointer-events-auto touch-none backdrop-blur-sm">
-                <div id="joystick-left-knob" class="absolute top-1/2 left-1/2 w-12 h-12 bg-blue-500/80 rounded-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-lg"></div>
-            </div>
-
-            <!-- Right Joystick (Aim/Shoot) -->
-            <div id="joystick-right-zone" class="absolute bottom-8 right-8 w-32 h-32 bg-gray-800/60 rounded-full border-2 border-gray-600 pointer-events-auto touch-none backdrop-blur-sm">
-                <div id="joystick-right-knob" class="absolute top-1/2 left-1/2 w-12 h-12 bg-red-500/80 rounded-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-lg"></div>
-            </div>
-
-            <!-- Ability Button -->
-            <button id="mobile-ability-btn" class="absolute bottom-44 right-8 w-16 h-16 flex items-center justify-center bg-yellow-500/80 rounded-full border-2 border-yellow-400 font-game font-bold text-white text-2xl shadow-[0_0_15px_rgba(234,179,8,0.5)] pointer-events-auto touch-none active:bg-yellow-400 backdrop-blur-sm">
-                ⚡
-            </button>
-        </div>
-
         <div id="boss-hud" class="absolute top-4 left-1/2 transform -translate-x-1/2 w-full max-w-2xl hidden z-20">
             <div class="bg-gray-900/95 border-2 border-red-800 p-3 rounded-xl boss-warning-anim backdrop-blur">
                 <div class="text-red-500 text-center font-game font-bold tracking-[0.3em] mb-2 text-sm animate-pulse">WARNING: ENEMY COMMANDER DEPLOYED</div>
@@ -82,35 +64,35 @@
             </div>
         </div>
 
-        <div id="hud" class="w-full p-4 flex justify-between items-start hidden mt-16 md:mt-0 z-20 pointer-events-none">
-            <div class="flex flex-wrap gap-4 pointer-events-none">
+        <div id="hud" class="w-full p-4 flex justify-between items-start hidden mt-16 md:mt-0">
+            <div class="flex flex-wrap gap-4">
                 <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg">
                     <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">ARMOR</div>
-                    <div class="w-32 md:w-48 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                    <div class="w-48 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
                         <div id="health-bar" class="h-full bg-green-500 transition-all duration-200" style="width: 100%;"></div>
                     </div>
                 </div>
 
                 <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg">
-                    <div id="ability-label" class="text-gray-400 text-xs font-bold tracking-widest mb-1 uppercase">ABILITY</div>
-                    <div class="w-24 md:w-32 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                    <div id="ability-label" class="text-gray-400 text-xs font-bold tracking-widest mb-1 uppercase">ABILITY [SPACE]</div>
+                    <div class="w-32 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
                         <div id="ability-bar" class="h-full bg-blue-500 transition-all duration-75" style="width: 100%;"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg text-right min-w-[120px] md:min-w-[150px] pointer-events-none">
+            <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg text-right min-w-[150px]">
                 <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">SCORE</div>
-                <div id="score-display" class="text-2xl md:text-3xl font-game text-white font-bold mb-2">0</div>
+                <div id="score-display" class="text-3xl font-game text-white font-bold mb-2">0</div>
                 <div class="text-yellow-500 text-xs font-bold tracking-widest mb-1">CREDITS</div>
-                <div id="hud-credits" class="text-lg md:text-xl font-game text-yellow-400 font-bold">0</div>
+                <div id="hud-credits" class="text-xl font-game text-yellow-400 font-bold">0</div>
             </div>
         </div>
 
         <div id="start-screen" class="interactive absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 backdrop-blur-sm z-50">
             <div class="text-7xl mb-6">🎯🪖</div>
-            <h1 class="text-4xl md:text-6xl font-game font-bold text-white mb-2 tracking-wider text-center">TANK <span class="text-blue-500">ASSAULT</span></h1>
-            <p class="text-gray-400 mb-6 text-sm md:text-lg text-center max-w-md">Survive the escalating waves in a massive open battlefield.</p>
+            <h1 class="text-6xl font-game font-bold text-white mb-2 tracking-wider text-center">TANK <span class="text-blue-500">ASSAULT</span></h1>
+            <p class="text-gray-400 mb-6 text-lg text-center max-w-md">Survive the escalating waves and defeat the Commanders.</p>
             
             <div class="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded-full border border-gray-700 mb-8">
                 <span class="text-xl">💰</span>
@@ -118,36 +100,37 @@
                 <span id="menu-credits" class="font-game text-yellow-400 text-2xl font-bold">0</span>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-4 mb-8 w-full md:w-auto px-6">
-                <button onclick="openShop()" class="w-full md:w-auto bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-8 rounded-full border border-gray-500 shadow-lg transform transition active:scale-95 flex items-center justify-center gap-2">
+            <div class="flex gap-4 mb-8">
+                <button onclick="openShop()" class="bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-8 rounded-full border border-gray-500 shadow-lg transform transition active:scale-95 flex items-center gap-2">
                     🛒 ARMORY
                 </button>
-                <button onclick="startGame()" class="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white font-game text-2xl font-bold py-4 px-12 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transform transition active:scale-95">
+                <button onclick="startGame()" class="bg-blue-600 hover:bg-blue-500 text-white font-game text-2xl font-bold py-4 px-12 rounded-full shadow-[0_0_20px_rgba(37,99,235,0.4)] transform transition active:scale-95">
                     DEPLOY TANK
                 </button>
             </div>
 
-            <div class="bg-gray-800 p-4 md:p-6 rounded-2xl border border-gray-700 flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl mx-4">
-                <div class="text-center px-2 md:px-4"><div class="text-2xl md:text-3xl mb-2">🕹️</div><div class="font-bold text-white text-sm md:text-base">WASD / L-STICK</div><div class="text-xs md:text-sm text-gray-400">Move</div></div>
-                <div class="text-center px-2 md:px-4 border-l border-gray-700"><div class="text-2xl md:text-3xl mb-2">⚡</div><div class="font-bold text-white text-sm md:text-base">SPACE / BTN</div><div class="text-xs md:text-sm text-gray-400">Ability</div></div>
-                <div class="text-center px-2 md:px-4 border-l border-gray-700"><div class="text-2xl md:text-3xl mb-2">🎯</div><div class="font-bold text-white text-sm md:text-base">MOUSE / R-STICK</div><div class="text-xs md:text-sm text-gray-400">Aim & Fire</div></div>
+            <div class="bg-gray-800 p-6 rounded-2xl border border-gray-700 flex flex-wrap justify-center gap-6 max-w-5xl">
+                <div class="text-center px-4"><div class="text-3xl mb-2">⌨️</div><div class="font-bold text-white">WASD</div><div class="text-sm text-gray-400">Move</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">⚡</div><div class="font-bold text-white">SPACE</div><div class="text-sm text-gray-400">Ability</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">🖱️</div><div class="font-bold text-white">MOUSE</div><div class="text-sm text-gray-400">Aim</div></div>
+                <div class="text-center px-4 border-l border-gray-700"><div class="text-3xl mb-2">👆</div><div class="font-bold text-white">CLICK</div><div class="text-sm text-gray-400">Fire</div></div>
             </div>
         </div>
 
-        <div id="shop-screen" class="interactive absolute inset-0 flex flex-col items-center bg-gray-900/95 backdrop-blur-md hidden z-50 p-4 md:p-8 overflow-y-auto">
-            <div class="flex flex-col md:flex-row justify-between items-center w-full max-w-6xl mb-8 gap-4 mt-8 md:mt-0">
-                <h2 class="text-4xl md:text-5xl font-game font-bold text-white tracking-wider">ARMORY</h2>
+        <div id="shop-screen" class="interactive absolute inset-0 flex flex-col items-center bg-gray-900/95 backdrop-blur-md hidden z-50 p-8 overflow-y-auto">
+            <div class="flex justify-between items-center w-full max-w-6xl mb-8">
+                <h2 class="text-5xl font-game font-bold text-white tracking-wider">ARMORY</h2>
                 <div class="flex items-center gap-2 bg-gray-800 px-6 py-3 rounded-full border border-gray-700">
                     <span class="text-xl">💰</span>
-                    <span class="text-gray-400 font-bold tracking-widest text-sm md:text-base">CREDITS:</span>
-                    <span id="shop-credits" class="font-game text-yellow-400 text-xl md:text-2xl font-bold">0</span>
+                    <span class="text-gray-400 font-bold tracking-widest">CREDITS:</span>
+                    <span id="shop-credits" class="font-game text-yellow-400 text-2xl font-bold">0</span>
                 </div>
             </div>
             
-            <div id="tank-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8 pb-8">
+            <div id="tank-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8">
             </div>
 
-            <button onclick="closeShop()" class="mt-auto bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-12 rounded-full shadow-lg transform transition active:scale-95 mb-8 md:mb-0">
+            <button onclick="closeShop()" class="mt-auto bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-12 rounded-full shadow-lg transform transition active:scale-95">
                 RETURN TO BASE
             </button>
         </div>
@@ -156,14 +139,14 @@
             <h2 class="text-6xl font-game font-bold text-white mb-2 tracking-wider">MIA</h2>
             <p class="text-red-400 mb-8 text-xl font-bold">Your tank was destroyed!</p>
             
-            <div class="bg-gray-900 p-6 md:p-8 rounded-2xl border border-red-900 mb-8 text-center shadow-2xl flex flex-col md:flex-row gap-6 md:gap-12 w-11/12 md:w-auto">
+            <div class="bg-gray-900 p-8 rounded-2xl border border-red-900 mb-8 text-center shadow-2xl flex gap-12">
                 <div>
                     <div class="text-gray-400 text-sm font-bold tracking-widest mb-2">FINAL SCORE</div>
-                    <div id="final-score" class="font-game font-bold text-white text-5xl md:text-6xl">0</div>
+                    <div id="final-score" class="font-game font-bold text-white text-6xl">0</div>
                 </div>
-                <div class="md:border-l md:border-t-0 border-t border-gray-800 md:pl-12 pt-6 md:pt-0">
+                <div class="border-l border-gray-800 pl-12">
                     <div class="text-yellow-500 text-sm font-bold tracking-widest mb-2">CREDITS EARNED</div>
-                    <div id="final-credits" class="font-game font-bold text-yellow-400 text-5xl md:text-6xl">+0</div>
+                    <div id="final-credits" class="font-game font-bold text-yellow-400 text-6xl">+0</div>
                 </div>
             </div>
 
@@ -177,16 +160,27 @@
             </div>
         </div>
 
+        <div id="level-up-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-blue-950/90 backdrop-blur-md hidden z-50">
+            <h2 class="text-5xl md:text-6xl font-game font-bold text-white mb-2 tracking-wider text-center">SECTOR CLEARED</h2>
+            <p class="text-blue-400 mb-8 text-xl font-bold">Commander Defeated!</p>
+            
+            <div class="bg-gray-900 p-6 md:p-8 rounded-2xl border border-blue-900 mb-8 text-center shadow-2xl flex flex-col items-center gap-2">
+                <div class="text-gray-400 text-sm font-bold tracking-widest mb-1">ENTERING LEVEL</div>
+                <div id="next-level-display" class="font-game font-bold text-blue-500 text-7xl mb-4">2</div>
+                <div class="text-yellow-500 text-sm font-bold tracking-widest mb-1">BOSS BOUNTY</div>
+                <div class="font-game font-bold text-yellow-400 text-4xl">+250 💰</div>
+            </div>
+
+            <div class="text-blue-300 font-game text-xl animate-pulse mt-4">
+                PREPARING NEXT SECTOR... <span id="level-countdown" class="font-bold text-white">3</span>
+            </div>
+        </div>
+
     </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        // WORLD SETTINGS
-        const WORLD_WIDTH = 3000;
-        const WORLD_HEIGHT = 3000;
-        const camera = { x: 0, y: 0 };
 
         // UI Elements
         const startScreen = document.getElementById('start-screen');
@@ -207,12 +201,16 @@
 
         const bossHud = document.getElementById('boss-hud');
         const bossHealthBar = document.getElementById('boss-health-bar');
+        const levelUpScreen = document.getElementById('level-up-screen');
+        const nextLevelDisplay = document.getElementById('next-level-display');
+        const levelCountdownDisplay = document.getElementById('level-countdown');
 
         // Game State
         let isPlaying = false;
         let animationId;
         let score = 0;
         let frameCount = 0;
+        let currentLevel = 1;
 
         // Boss State
         let isBossLevel = false;
@@ -231,37 +229,33 @@
             predator: { hp: 0, speed: 0, dmg: 0 }
         };
 
-        // Joystick Input States
-        const joystickMove = { x: 0, y: 0 };
-        const joystickAim = { active: false, angle: 0 };
-
         // Tank Classes Configuration
         const TANK_CLASSES = {
             assault: {
                 id: 'assault', name: 'Assault', cost: 0,
                 color: '#3b82f6', barrelColor: '#1e40af', icon: '🚙',
-                hp: 150, speed: 4.5, fireRate: 20, bSpeed: 14, bDamage: 50,
+                hp: 150, speed: 3.5, fireRate: 20, bSpeed: 12, bDamage: 50,
                 ability: 'dash', abilityCooldown: 60, abilityDuration: 15,
                 desc: 'Balanced combat vehicle. <br><span class="text-blue-400 font-bold">Ability: Dash</span> (Short invincibility & speed boost).'
             },
             juggernaut: {
                 id: 'juggernaut', name: 'Juggernaut', cost: 500,
                 color: '#22c55e', barrelColor: '#166534', icon: '🛡️',
-                hp: 300, speed: 3.0, fireRate: 25, bSpeed: 12, bDamage: 55,
+                hp: 300, speed: 2.5, fireRate: 25, bSpeed: 10, bDamage: 55,
                 ability: 'shield', abilityCooldown: 400, abilityDuration: 180,
                 desc: 'Slow moving fortress. <br><span class="text-green-400 font-bold">Ability: Energy Shield</span> (Absorbs all damage for 3s).'
             },
             phantom: {
                 id: 'phantom', name: 'Phantom', cost: 1200,
                 color: '#eab308', barrelColor: '#a16207', icon: '⚡',
-                hp: 100, speed: 7.0, fireRate: 8, bSpeed: 18, bDamage: 15,
+                hp: 100, speed: 6.5, fireRate: 8, bSpeed: 16, bDamage: 15,
                 ability: 'phase', abilityCooldown: 60, abilityDuration: 10,
                 desc: 'Extremely fast & fragile. <br><span class="text-yellow-400 font-bold">Ability: Phase</span> (A lightning fast dash with quick cooldown).'
             },
             predator: {
                 id: 'predator', name: 'Predator', cost: 2000,
                 color: '#a855f7', barrelColor: '#7e22ce', icon: '👁️',
-                hp: 200, speed: 5.5, fireRate: 16, bSpeed: 18, bDamage: 120,
+                hp: 200, speed: 5.5, fireRate: 16, bSpeed: 13, bDamage: 120,
                 ability: 'cloak', abilityCooldown: 450, abilityDuration: 150,
                 desc: 'Devastating sniper rounds. <br><span class="text-purple-400 font-bold">Ability: Cloak</span> (Invisible to enemy targeting for 4s).'
             }
@@ -374,7 +368,6 @@
                 const canAfford = playerCredits >= tank.cost;
                 const upg = tankUpgrades[tank.id];
 
-                // Calculate the modified stats based on upgrade levels
                 const curHp = Math.round(tank.hp * (1 + upg.hp * 0.20));
                 const curSpeed = (tank.speed * (1 + upg.speed * 0.10)).toFixed(1);
                 const curDmg = Math.round(tank.bDamage * (1 + upg.dmg * 0.20));
@@ -445,85 +438,6 @@
         window.addEventListener('mousedown', () => { mouse.isDown = true; });
         window.addEventListener('mouseup', () => { mouse.isDown = false; });
 
-        // Touch Controls setup
-        function setupJoystick(zoneId, knobId, isMove) {
-            const zone = document.getElementById(zoneId);
-            const knob = document.getElementById(knobId);
-            let active = false;
-            let center = { x: 0, y: 0 };
-            let radius = 64; 
-
-            zone.addEventListener('touchstart', handleStart, {passive: false});
-            zone.addEventListener('touchmove', handleMove, {passive: false});
-            zone.addEventListener('touchend', handleEnd, {passive: false});
-            zone.addEventListener('touchcancel', handleEnd, {passive: false});
-
-            function handleStart(e) {
-                e.preventDefault();
-                active = true;
-                const rect = zone.getBoundingClientRect();
-                center = { x: rect.left + radius, y: rect.top + radius };
-                updateKnob(e.changedTouches[0]);
-            }
-
-            function handleMove(e) {
-                e.preventDefault();
-                if (!active) return;
-                updateKnob(e.changedTouches[0]);
-            }
-
-            function handleEnd(e) {
-                e.preventDefault();
-                active = false;
-                knob.style.transform = `translate(-50%, -50%)`;
-                if (isMove) {
-                    joystickMove.x = 0;
-                    joystickMove.y = 0;
-                } else {
-                    joystickAim.active = false;
-                    mouse.isDown = false;
-                }
-            }
-
-            function updateKnob(touch) {
-                let dx = touch.clientX - center.x;
-                let dy = touch.clientY - center.y;
-                let distance = Math.sqrt(dx*dx + dy*dy);
-                let angle = Math.atan2(dy, dx);
-
-                if (distance > radius) {
-                    dx = Math.cos(angle) * radius;
-                    dy = Math.sin(angle) * radius;
-                    distance = radius;
-                }
-
-                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-
-                if (isMove) {
-                    joystickMove.x = dx / radius;
-                    joystickMove.y = dy / radius;
-                } else {
-                    joystickAim.active = true;
-                    joystickAim.angle = angle;
-                    mouse.isDown = true; 
-                }
-            }
-        }
-
-        function initMobileControls() {
-            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
-                document.getElementById('mobile-controls').classList.remove('hidden');
-                setupJoystick('joystick-left-zone', 'joystick-left-knob', true);
-                setupJoystick('joystick-right-zone', 'joystick-right-knob', false);
-
-                const abilityBtn = document.getElementById('mobile-ability-btn');
-                abilityBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[' '] = true; }, {passive: false});
-                abilityBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys[' '] = false; }, {passive: false});
-                abilityBtn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[' '] = false; }, {passive: false});
-            }
-        }
-        initMobileControls();
-
         // Resize Canvas
         function resize() {
             canvas.width = window.innerWidth;
@@ -562,27 +476,27 @@
                     this.abilityMaxCooldown = cfg.abilityCooldown;
                     this.abilityDuration = cfg.abilityDuration;
                 } else if (isBoss) {
-                    this.radius = 60;
+                    this.radius = 50;
                     this.color = '#7f1d1d'; 
                     this.barrelColor = '#450a0a';
                     const bossLevel = Math.max(1, Math.floor(score / 1000));
                     
-                    this.maxHealth = 600 * bossLevel; 
-                    this.baseSpeed = 1.0 + (bossLevel * 0.05); 
-                    this.fireRate = Math.max(50, 90 - (bossLevel * 5)); 
-                    this.bulletSpeed = 6.0; 
-                    this.bulletDamage = 15 + (bossLevel * 5); 
+                    this.maxHealth = 600 * bossLevel;
+                    this.baseSpeed = 0.8 + (bossLevel * 0.05);
+                    this.fireRate = Math.max(60, 100 - (bossLevel * 5));
+                    this.bulletSpeed = 4.5;
+                    this.bulletDamage = 15 + (bossLevel * 5);
                     this.abilityType = 'none';
                 } else {
                     this.radius = 20;
                     const difficultyMultiplier = Math.floor(score / 200);
                     
-                    this.baseSpeed = 2.0 + Math.random() + (difficultyMultiplier * 0.15);
+                    this.baseSpeed = 1.5 + Math.random() + (difficultyMultiplier * 0.1);
                     this.color = '#ef4444'; 
                     this.barrelColor = '#991b1b';
                     this.maxHealth = 20 + (difficultyMultiplier * 15);
                     this.fireRate = Math.max(30, 80 - (difficultyMultiplier * 5));
-                    this.bulletSpeed = 7 + (difficultyMultiplier * 0.3);
+                    this.bulletSpeed = 6 + (difficultyMultiplier * 0.3);
                     this.bulletDamage = 15 + (difficultyMultiplier * 5);
                     this.abilityType = 'none';
                 }
@@ -632,7 +546,11 @@
                     ctx.lineTo(this.radius * 0.7, -this.radius);
                     ctx.closePath();
                 } else {
-                    ctx.roundRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2, 8);
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2, 8);
+                    } else {
+                        ctx.rect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+                    }
                 }
                 ctx.fill();
                 
@@ -691,15 +609,10 @@
                     let dx = 0, dy = 0;
 
                     if (!this.abilityActive || (this.abilityType !== 'dash' && this.abilityType !== 'phase')) {
-                        if (joystickMove.x !== 0 || joystickMove.y !== 0) {
-                            dx = joystickMove.x;
-                            dy = joystickMove.y;
-                        } else {
-                            if (keys.w || keys.ArrowUp) dy -= 1;
-                            if (keys.s || keys.ArrowDown) dy += 1;
-                            if (keys.a || keys.ArrowLeft) dx -= 1;
-                            if (keys.d || keys.ArrowRight) dx += 1;
-                        }
+                        if (keys.w || keys.ArrowUp) dy -= 1;
+                        if (keys.s || keys.ArrowDown) dy += 1;
+                        if (keys.a || keys.ArrowLeft) dx -= 1;
+                        if (keys.d || keys.ArrowRight) dx += 1;
                     }
 
                     if (dx !== 0 || dy !== 0) {
@@ -755,19 +668,10 @@
                         this.bodyAngle = Math.atan2(dy, dx);
                     }
 
-                    // Keep inside massive WORLD_WIDTH instead of canvas.width
-                    this.x = Math.max(this.radius, Math.min(WORLD_WIDTH - this.radius, this.x));
-                    this.y = Math.max(this.radius, Math.min(WORLD_HEIGHT - this.radius, this.y));
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
 
-                    // MOUSE AIM needs to account for Camera offset
-                    const worldMouseX = mouse.x + camera.x;
-                    const worldMouseY = mouse.y + camera.y;
-
-                    if (joystickAim.active) {
-                        this.turretAngle = joystickAim.angle;
-                    } else {
-                        this.turretAngle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
-                    }
+                    this.turretAngle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
 
                     let isDashing = this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase');
 
@@ -786,7 +690,7 @@
                         if (this.cooldown <= 0 && Math.random() < 0.01) this.shoot();
                     } else {
                         this.turretAngle = Math.atan2(dy, dx);
-                        const stopDistance = this.isBoss ? 200 : 150;
+                        const stopDistance = this.isBoss ? 100 : 150;
                         
                         if (dist > stopDistance) {
                             this.bodyAngle = this.turretAngle;
@@ -794,7 +698,7 @@
                             this.y += Math.sin(this.bodyAngle) * this.speed;
                         }
 
-                        const shootRange = this.isBoss ? 900 : 600;
+                        const shootRange = this.isBoss ? 800 : 500;
                         if (this.cooldown <= 0 && dist < shootRange) {
                             this.shoot();
                             this.cooldown = this.isBoss ? this.fireRate : this.fireRate + (Math.random() * 40 - 20); 
@@ -813,8 +717,8 @@
                         }
                     });
                     
-                    this.x = Math.max(this.radius, Math.min(WORLD_WIDTH - this.radius, this.x));
-                    this.y = Math.max(this.radius, Math.min(WORLD_HEIGHT - this.radius, this.y));
+                    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
                 }
             }
 
@@ -848,7 +752,7 @@
                 this.color = color;
                 this.isPlayer = isPlayer;
                 this.radius = damage > 35 ? 8 : 4; 
-                this.life = 200; // Increased life due to larger map
+                this.life = 150; 
                 this.damage = damage;
                 this.isCloakedShot = isCloakedShot;
             }
@@ -918,10 +822,7 @@
             
             bossHud.classList.remove('hidden');
             
-            let by = player.y - 600;
-            if (by < 100) by = player.y + 600;
-
-            bossEntity = new Tank(player.x, Math.max(100, Math.min(WORLD_HEIGHT - 100, by)), false, null, true);
+            bossEntity = new Tank(canvas.width / 2, -50, false, null, true);
             enemies.push(bossEntity);
         }
 
@@ -938,12 +839,13 @@
             
             if (frameCount % spawnRate === 0 && enemies.length < maxEnemies) {
                 let ex, ey;
-                let attempts = 0;
-                do {
-                    ex = Math.random() * WORLD_WIDTH;
-                    ey = Math.random() * WORLD_HEIGHT;
-                    attempts++;
-                } while (Math.hypot(ex - player.x, ey - player.y) < Math.max(canvas.width, canvas.height) * 0.8 && attempts < 10);
+                if (Math.random() > 0.5) {
+                    ex = Math.random() > 0.5 ? -50 : canvas.width + 50;
+                    ey = Math.random() * canvas.height;
+                } else {
+                    ex = Math.random() * canvas.width;
+                    ey = Math.random() > 0.5 ? -50 : canvas.height + 50;
+                }
                 
                 const enemy = new Tank(ex, ey, false);
                 enemies.push(enemy);
@@ -951,27 +853,16 @@
         }
 
         function drawGrid() {
-            ctx.strokeStyle = isBossLevel ? '#450a0a' : '#1f2937'; 
+            ctx.strokeStyle = isBossLevel ? '#450a0a' : '#1f2937';
             ctx.lineWidth = 1;
             const gridSize = 50;
-
-            // Optimization: Only draw grid lines that are visible in the camera view
-            const startX = Math.max(0, Math.floor(camera.x / gridSize) * gridSize);
-            const endX = Math.min(WORLD_WIDTH, camera.x + canvas.width + gridSize);
-            const startY = Math.max(0, Math.floor(camera.y / gridSize) * gridSize);
-            const endY = Math.min(WORLD_HEIGHT, camera.y + canvas.height + gridSize);
-
-            for (let x = startX; x <= endX; x += gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, Math.max(0, camera.y)); ctx.lineTo(x, Math.min(WORLD_HEIGHT, camera.y + canvas.height)); ctx.stroke();
+            
+            for (let x = 0; x <= canvas.width; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
             }
-            for (let y = startY; y <= endY; y += gridSize) {
-                ctx.beginPath(); ctx.moveTo(Math.max(0, camera.x), y); ctx.lineTo(Math.min(WORLD_WIDTH, camera.x + canvas.width), y); ctx.stroke();
+            for (let y = 0; y <= canvas.height; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
             }
-
-            // Draw thick world boundaries
-            ctx.strokeStyle = isBossLevel ? '#ef4444' : '#3b82f6';
-            ctx.lineWidth = 10;
-            ctx.strokeRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         }
 
         function updateHUD() {
@@ -987,7 +878,7 @@
             else if (healthPct > 30) healthBar.className = "h-full bg-yellow-500 transition-all duration-200";
             else healthBar.className = "h-full bg-red-600 transition-all duration-200 animate-pulse";
 
-            abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability}`;
+            abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability} [SPACE]`;
             let abilityPct = 0;
             
             if (player.abilityActive) {
@@ -1009,13 +900,45 @@
             }
         }
 
+        function showLevelUpScreen() {
+            isPlaying = false;
+            levelUpScreen.classList.remove('hidden');
+            nextLevelDisplay.innerText = currentLevel;
+            updateHUD();
+            saveData(); 
+            
+            // Countdown Logic
+            let countdown = 3;
+            levelCountdownDisplay.innerText = countdown;
+
+            const interval = setInterval(() => {
+                countdown--;
+                levelCountdownDisplay.innerText = countdown;
+                if (countdown <= 0) {
+                    clearInterval(interval);
+                    continueGame();
+                }
+            }, 1000);
+        }
+
+        function continueGame() {
+            levelUpScreen.classList.add('hidden');
+            
+            enemies = [];
+            bullets = [];
+            
+            isPlaying = true;
+            gameLoop();
+        }
+
         function startGame() {
             resize();
-            player = new Tank(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, true, selectedTankType);
+            player = new Tank(canvas.width / 2, canvas.height / 2, true, selectedTankType);
             bullets = [];
             enemies = [];
             particles = [];
             score = 0;
+            currentLevel = 1;
             nextBossTarget = 1000;
             isBossLevel = false;
             bossEntity = null;
@@ -1023,6 +946,7 @@
             frameCount = 0;
             
             bossHud.classList.add('hidden');
+            levelUpScreen.classList.add('hidden');
             updateHUD();
 
             startScreen.classList.add('hidden');
@@ -1044,8 +968,6 @@
             hud.classList.add('hidden');
             bossHud.classList.add('hidden');
             gameOverScreen.classList.remove('hidden');
-            
-            document.getElementById('mobile-controls').classList.add('hidden');
             
             finalScore.innerText = score;
             finalCredits.innerText = `+${sessionEarnedCredits}`;
@@ -1115,6 +1037,9 @@
                                     score += 500; 
                                     playerCredits += 250; 
                                     sessionEarnedCredits += 250;
+                                    
+                                    currentLevel++;
+                                    showLevelUpScreen();
                                 } else {
                                     createParticles(e.x, e.y, '#ef4444', 30, 0, Math.PI*2, 6, 8);
                                     createParticles(e.x, e.y, '#f97316', 20, 0, Math.PI*2, 4, 6);
@@ -1139,30 +1064,12 @@
         function gameLoop() {
             if (!isPlaying) return;
             
-            if (('ontouchstart' in window || navigator.maxTouchPoints > 0) && document.getElementById('mobile-controls').classList.contains('hidden')) {
-                document.getElementById('mobile-controls').classList.remove('hidden');
-            }
-
             if (isBossLevel) {
                 ctx.fillStyle = `rgba(20, 10, 10, 0.9)`;
             } else {
                 ctx.fillStyle = '#111827';
             }
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Update Camera Position to follow player
-            if (player) {
-                camera.x = player.x - canvas.width / 2;
-                camera.y = player.y - canvas.height / 2;
-                
-                // Clamp camera to world boundaries so it doesn't show empty space
-                camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, camera.x));
-                camera.y = Math.max(0, Math.min(WORLD_HEIGHT - canvas.height, camera.y));
-            }
-
-            // Apply Camera Transform
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
             
             drawGrid();
             updateHUD();
@@ -1182,8 +1089,7 @@
                 let b = bullets[i];
                 b.update();
                 b.draw();
-                // Remove bullets if they go out of the new WORLD bounds
-                if (b.life <= 0 || b.x < 0 || b.x > WORLD_WIDTH || b.y < 0 || b.y > WORLD_HEIGHT) {
+                if (b.life <= 0 || b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
                     bullets.splice(i, 1);
                 }
             }
@@ -1199,22 +1105,15 @@
 
             checkCollisions();
 
-            // Restore Camera Transform
-            ctx.restore();
-
             if (isPlaying) {
                 animationId = requestAnimationFrame(gameLoop);
             }
         }
 
+        // Setup
         ctx.fillStyle = '#111827';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Draw initial static grid for background effect
-        ctx.strokeStyle = '#1f2937'; 
-        ctx.lineWidth = 1;
-        for (let x = 0; x <= canvas.width; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
-        for (let y = 0; y <= canvas.height; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+        drawGrid();
 
     </script>
 </body>
