@@ -1522,10 +1522,13 @@
                 let isElite = false;
                 let eliteType = 'assault';
 
-                // Only spawn healers up to the max limit per level
-                if (healersSpawnedThisLevel < maxHealersThisLevel && Math.random() < 0.10 && !enemies.some(e => e.isHealer)) {
-                    isHealer = true;
-                    healersSpawnedThisLevel++;
+                // 100% guarantee healers spawn every round
+                if (healersSpawnedThisLevel < maxHealersThisLevel && !enemies.some(e => e.isHealer)) {
+                    // 35% chance per spawn tick ensures it reliably appears at a random time before the boss
+                    if (Math.random() < 0.35) {
+                        isHealer = true;
+                        healersSpawnedThisLevel++;
+                    }
                 } else if (currentLevel >= 2 && Math.random() < 0.25) {
                     // 25% chance for an elite after level 1
                     isElite = true;
