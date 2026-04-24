@@ -1909,8 +1909,8 @@
                         createParticles(e.x, e.y, '#22c55e', 40, 0, Math.PI*2, 6, 8);
                         createParticles(e.x, e.y, '#ffffff', 20, 0, Math.PI*2, 4, 6);
                         
-                        const healAmount = 40 * (1 + ((currentLevel - 1) * 0.20));
-                        player.health = Math.min(player.maxHealth, player.health + healAmount);
+                        // Fully restore player armor to max
+                        player.health = player.maxHealth;
                         
                         score += 50;
                     } else if (e.isElite) {
