@@ -785,7 +785,7 @@
         let particles = [];
 
         class Tank {
-            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false, isElite = false) {
+            constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false, isElite = false, bossHasAbility = false) {
                 this.x = x;
                 this.y = y;
                 this.isPlayer = isPlayer;
@@ -835,8 +835,17 @@
                     this.fireRate = Math.max(25, 90 / Math.sqrt(bossScale)); 
                     this.bulletSpeed = Math.min(12, 4.5 + (bossScale * 0.5)); 
                     this.bulletDamage = 20 * bossScale; 
-                    this.abilityType = 'none';
-                    this.passive = 'none';
+                    
+                    if (bossHasAbility) {
+                        const cfg = TANK_CLASSES[typeId];
+                        this.abilityType = cfg.ability;
+                        this.abilityMaxCooldown = cfg.abilityCooldown * 2; 
+                        this.abilityDuration = cfg.abilityDuration;
+                        this.passive = cfg.passive || 'none';
+                    } else {
+                        this.abilityType = 'none';
+                        this.passive = 'none';
+                    }
                 } else if (isHealer) {
                     this.radius = 20;
                     const powerScale = 1 + ((currentLevel - 1) * 0.20);
@@ -929,15 +938,15 @@
                     ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(159, 18, 57, 0.3)'; ctx.stroke();
                 }
 
-                // Elite target ring
-                if (this.isElite) {
+                // Elite target ring (and boss ability ring)
+                if (this.isElite || (this.isBoss && this.abilityType !== 'none')) {
                     ctx.save();
                     ctx.rotate(frameCount * 0.05);
                     ctx.beginPath();
                     ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
-                    ctx.strokeStyle = this.color;
-                    ctx.lineWidth = 2;
-                    ctx.setLineDash([8, 8]);
+                    ctx.strokeStyle = this.isBoss ? '#fbbf24' : this.color;
+                    ctx.lineWidth = this.isBoss ? 4 : 2;
+                    ctx.setLineDash(this.isBoss ? [12, 12] : [8, 8]);
                     ctx.stroke();
                     ctx.setLineDash([]);
                     ctx.restore();
@@ -1106,7 +1115,7 @@
 
             activateAbility(targetX, targetY) {
                 this.abilityActive = true;
-                this.abilityCooldown = this.abilityMaxCooldown + (this.isElite ? Math.random() * 100 : 0);
+                this.abilityCooldown = this.abilityMaxCooldown + ((this.isElite || this.isBoss) ? Math.random() * 100 : 0);
 
                 if (['dash', 'phase', 'shield', 'cloak', 'overdrive', 'pierce', 'fear', 'freeze'].includes(this.abilityType)) {
                     this.abilityTimer = this.abilityDuration;
@@ -1331,8 +1340,8 @@
                             this.abilityActive = false;
                             this.speed = this.baseSpeed; 
                         }
-                    } else if (this.isElite && this.abilityCooldown <= 0) {
-                        // Elite AI Ability Triggers
+                    } else if ((this.isElite || (this.isBoss && this.abilityType !== 'none')) && this.abilityCooldown <= 0) {
+                        // Elite and Boss AI Ability Triggers
                         let shouldUse = false;
                         if (['shield', 'repair'].includes(this.abilityType) && this.health < this.maxHealth * 0.4) shouldUse = true;
                         else if (['dash', 'phase', 'teleport'].includes(this.abilityType) && dist > 300 && Math.random() < 0.02) shouldUse = true;
@@ -1344,7 +1353,7 @@
                         }
                     }
 
-                    // Passive: Regen for Elites
+                    // Passive: Regen for Elites and Bosses
                     if (this.passive === 'regen' && frameCount % 60 === 0 && this.health < this.maxHealth) {
                         this.health = Math.min(this.maxHealth, this.health + (this.maxHealth * 0.05));
                         createParticles(this.x, this.y, '#10b981', 3, 0, Math.PI*2, 3, 2);
@@ -1600,7 +1609,14 @@
                 }
             }
 
-            bossEntity = new Tank(bx, Math.max(100, Math.min(WORLD_HEIGHT - 100, by)), false, null, true);
+            let bossHasAbility = Math.random() < 0.20;
+            let bossType = 'assault';
+            if (bossHasAbility) {
+                const types = Object.keys(TANK_CLASSES);
+                bossType = types[Math.floor(Math.random() * types.length)];
+            }
+
+            bossEntity = new Tank(bx, Math.max(100, Math.min(WORLD_HEIGHT - 100, by)), false, bossType, true, false, false, bossHasAbility);
             enemies.push(bossEntity);
         }
 
@@ -1938,7 +1954,7 @@
                         
                         // Apply enemy lifesteal
                         if (b.passive === 'lifesteal') {
-                            const vampire = enemies.find(e => e.isElite && e.passive === 'lifesteal');
+                            const vampire = enemies.find(e => (e.isElite || e.isBoss) && e.passive === 'lifesteal');
                             if (vampire) {
                                 vampire.health = Math.min(vampire.maxHealth, vampire.health + 15);
                                 createParticles(vampire.x, vampire.y, '#9f1239', 10, 0, Math.PI*2, 3, 4);
