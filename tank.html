@@ -67,6 +67,11 @@
                 <div id="joystick-right-knob" class="absolute top-1/2 left-1/2 w-12 h-12 bg-red-500/80 rounded-full transform -translate-x-1/2 -translate-y-1/2 pointer-events-none shadow-lg"></div>
             </div>
 
+            <!-- Gadget Button -->
+            <button id="mobile-gadget-btn" class="absolute bottom-64 right-8 w-14 h-14 flex items-center justify-center bg-cyan-500/80 rounded-full border-2 border-cyan-400 font-game font-bold text-white text-xl shadow-[0_0_15px_rgba(6,182,212,0.5)] pointer-events-auto touch-none active:bg-cyan-400 backdrop-blur-sm hidden">
+                🔧
+            </button>
+
             <!-- Ability Button -->
             <button id="mobile-ability-btn" class="absolute bottom-44 right-8 w-16 h-16 flex items-center justify-center bg-yellow-500/80 rounded-full border-2 border-yellow-400 font-game font-bold text-white text-2xl shadow-[0_0_15px_rgba(234,179,8,0.5)] pointer-events-auto touch-none active:bg-yellow-400 backdrop-blur-sm">
                 ⚡
@@ -95,6 +100,13 @@
                     <div id="ability-label" class="text-gray-400 text-xs font-bold tracking-widest mb-1 uppercase">ABILITY</div>
                     <div class="w-24 md:w-32 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
                         <div id="ability-bar" class="h-full bg-blue-500 transition-all duration-75" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div id="gadget-hud-container" class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg hidden">
+                    <div id="gadget-label-text" class="text-gray-400 text-xs font-bold tracking-widest mb-1 uppercase">GADGET</div>
+                    <div class="w-24 md:w-32 h-4 bg-gray-900 rounded-full overflow-hidden border border-gray-700 relative">
+                        <div id="gadget-bar" class="h-full bg-cyan-500 transition-all duration-75" style="width: 100%;"></div>
                     </div>
                 </div>
             </div>
@@ -152,6 +164,7 @@
             <div class="bg-gray-800 p-4 md:p-6 rounded-2xl border border-gray-700 flex flex-wrap justify-center gap-4 md:gap-6 max-w-5xl mx-4">
                 <div class="text-center px-2 md:px-4"><div class="text-2xl md:text-3xl mb-2">🕹️</div><div class="font-bold text-white text-sm md:text-base">WASD / L-STICK</div><div class="text-xs md:text-sm text-gray-400">Move</div></div>
                 <div class="text-center px-2 md:px-4 border-l border-gray-700"><div class="text-2xl md:text-3xl mb-2">⚡</div><div class="font-bold text-white text-sm md:text-base">SPACE / BTN</div><div class="text-xs md:text-sm text-gray-400">Ability</div></div>
+                <div class="text-center px-2 md:px-4 border-l border-gray-700"><div class="text-2xl md:text-3xl mb-2">🔧</div><div class="font-bold text-white text-sm md:text-base">SHIFT / BTN</div><div class="text-xs md:text-sm text-gray-400">Gadget</div></div>
                 <div class="text-center px-2 md:px-4 border-l border-gray-700"><div class="text-2xl md:text-3xl mb-2">🎯</div><div class="font-bold text-white text-sm md:text-base">MOUSE / R-STICK</div><div class="text-xs md:text-sm text-gray-400">Aim & Fire</div></div>
             </div>
         </div>
@@ -166,8 +179,12 @@
                 </div>
             </div>
             
-            <div id="tank-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8 pb-8">
-            </div>
+            <h3 class="text-3xl font-game font-bold text-white mb-4 w-full max-w-6xl text-left border-b border-gray-700 pb-2">TANKS</h3>
+            <div id="tank-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-6xl mb-8"></div>
+            
+            <h3 class="text-3xl font-game font-bold text-cyan-400 mb-4 w-full max-w-6xl text-left border-b border-gray-700 pb-2 mt-8">GADGETS</h3>
+            <p class="text-gray-400 text-sm w-full max-w-6xl text-left mb-6">Gadgets provide secondary active abilities. A gadget can only be applied to ONE tank at a time.</p>
+            <div id="gadget-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl mb-8 pb-8"></div>
 
             <button onclick="closeShop()" class="mt-auto bg-gray-700 hover:bg-gray-600 text-white font-game text-xl font-bold py-4 px-12 rounded-full shadow-lg transform transition active:scale-95 mb-8 md:mb-0">
                 RETURN TO BASE
@@ -207,7 +224,7 @@
                 <div class="text-gray-400 text-sm font-bold tracking-widest mb-1">ENTERING LEVEL</div>
                 <div id="next-level-display" class="font-game font-bold text-blue-500 text-7xl mb-4">2</div>
                 <div class="text-yellow-500 text-sm font-bold tracking-widest mb-1">BOSS BOUNTY</div>
-                <div class="font-game font-bold text-yellow-400 text-4xl">+250 💰</div>
+                <div id="boss-bounty-display" class="font-game font-bold text-yellow-400 text-4xl">+250 💰</div>
             </div>
 
             <div class="text-blue-300 font-game text-xl animate-pulse mt-4">
@@ -337,6 +354,8 @@
         // Persistent Data (Shop System)
         let playerCredits = 0;
         let ownedTanks = ['assault'];
+        let unlockedGadgets = [];
+        let tankGadgets = {}; // Maps tankId to gadgetId
         let selectedTankType = 'assault';
         let sessionEarnedCredits = 0;
         let wallsEnabled = true;
@@ -451,6 +470,24 @@
             }
         };
 
+        const GADGET_CLASSES = {
+            turret: {
+                id: 'turret', name: 'Auto-Turret', cost: 15000, icon: '🗼',
+                cooldown: 900, // 15s
+                desc: 'Spawns a stationary turret with 50% of your stats that attacks enemies for 10 seconds.'
+            },
+            emp: {
+                id: 'emp', name: 'EMP Mine', cost: 10000, icon: '💣',
+                cooldown: 600, // 10s
+                desc: 'Drops a proximity mine that freezes all nearby enemies for 3 seconds when triggered.'
+            },
+            drone: {
+                id: 'drone', name: 'Repair Drone', cost: 25000, icon: '🚁',
+                cooldown: 1200, // 20s
+                desc: 'Deploys a companion drone that follows you and rapidly heals armor for 5 seconds.'
+            }
+        };
+
         // Try load from local storage
         try {
             const savedData = JSON.parse(localStorage.getItem('tankGameData'));
@@ -458,6 +495,8 @@
                 playerCredits = savedData.credits || 0;
                 ownedTanks = savedData.owned || ['assault'];
                 selectedTankType = savedData.selected || 'assault';
+                if (savedData.unlockedGadgets) unlockedGadgets = savedData.unlockedGadgets;
+                if (savedData.tankGadgets) tankGadgets = savedData.tankGadgets;
                 if (savedData.wallsEnabled !== undefined) wallsEnabled = savedData.wallsEnabled;
                 if (savedData.soundEnabled !== undefined) soundEnabled = savedData.soundEnabled;
                 if (savedData.upgrades) {
@@ -476,6 +515,8 @@
                     credits: playerCredits,
                     owned: ownedTanks,
                     selected: selectedTankType,
+                    unlockedGadgets: unlockedGadgets,
+                    tankGadgets: tankGadgets,
                     wallsEnabled: wallsEnabled,
                     soundEnabled: soundEnabled,
                     upgrades: tankUpgrades
@@ -571,6 +612,40 @@
             }
         }
 
+        function buyGadget(gadgetId) {
+            SoundFX.init();
+            SoundFX.ui();
+            const gadget = GADGET_CLASSES[gadgetId];
+            if (playerCredits >= gadget.cost && !unlockedGadgets.includes(gadgetId)) {
+                playerCredits -= gadget.cost;
+                unlockedGadgets.push(gadgetId);
+                saveData();
+                renderShop();
+            }
+        }
+
+        function equipGadget(gadgetId) {
+            SoundFX.init();
+            SoundFX.ui();
+            const select = document.getElementById(`select-${gadgetId}`);
+            const tankId = select.value;
+            
+            // First, remove this gadget from any other tank it might be attached to
+            for (let key in tankGadgets) {
+                if (tankGadgets[key] === gadgetId) {
+                    delete tankGadgets[key];
+                }
+            }
+            
+            // Assign it to the newly selected tank (this will automatically overwrite any existing gadget on that tank)
+            if (tankId !== 'none') {
+                tankGadgets[tankId] = gadgetId;
+            }
+            
+            saveData();
+            renderShop();
+        }
+
         function upgradeStat(tankId, statKey) {
             SoundFX.init();
             SoundFX.ui();
@@ -612,9 +687,10 @@
         }
 
         function renderShop() {
-            const grid = document.getElementById('tank-grid');
-            grid.innerHTML = '';
+            const tankGrid = document.getElementById('tank-grid');
+            tankGrid.innerHTML = '';
             
+            // Render Tanks
             Object.values(TANK_CLASSES).forEach(tank => {
                 const isOwned = ownedTanks.includes(tank.id);
                 const isSelected = selectedTankType === tank.id;
@@ -673,19 +749,65 @@
                         ${btnText}
                     </button>
                 `;
-                grid.appendChild(card);
+                tankGrid.appendChild(card);
+            });
+
+            // Render Gadgets
+            const gadgetGrid = document.getElementById('gadget-grid');
+            gadgetGrid.innerHTML = '';
+
+            Object.values(GADGET_CLASSES).forEach(gadget => {
+                const isOwned = unlockedGadgets.includes(gadget.id);
+                const canAfford = playerCredits >= gadget.cost;
+                
+                // Check which tank has this gadget equipped
+                let equippedTo = null;
+                for (let key in tankGadgets) {
+                    if (tankGadgets[key] === gadget.id) equippedTo = key;
+                }
+
+                let actionHtml = '';
+                if (!isOwned) {
+                    actionHtml = `<button ${!canAfford ? 'disabled' : ''} onclick="buyGadget('${gadget.id}')" class="w-full mt-4 font-game font-bold py-3 rounded-xl transition-all ${canAfford ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-gray-700 text-gray-500'}">BUY (${gadget.cost} 💰)</button>`;
+                } else {
+                    let options = ownedTanks.map(tId => `<option value="${tId}" ${equippedTo === tId ? 'selected' : ''}>${TANK_CLASSES[tId].name}</option>`).join('');
+                    actionHtml = `
+                        <div class="mt-4 bg-gray-900 p-2 rounded-xl flex gap-2 items-center border border-gray-700">
+                            <select id="select-${gadget.id}" class="bg-gray-800 text-white p-2 rounded flex-grow text-xs border border-gray-700 outline-none focus:border-cyan-500 h-10">
+                                <option value="none">-- Unequip --</option>
+                                ${options}
+                            </select>
+                            <button onclick="equipGadget('${gadget.id}')" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-2 rounded shadow-md transform hover:scale-105 active:scale-95 text-xs h-10">APPLY</button>
+                        </div>
+                        ${equippedTo ? `<div class="text-xs text-green-400 mt-3 text-center font-bold">Currently applied to: ${TANK_CLASSES[equippedTo].name}</div>` : `<div class="text-xs text-gray-500 mt-3 text-center font-bold">Unassigned</div>`}
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = `bg-gray-800 p-4 md:p-6 rounded-2xl border ${equippedTo ? 'border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.2)]' : 'border-gray-700'} flex flex-col w-full h-full`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl md:text-2xl font-game font-bold text-cyan-400">${gadget.name}</h3>
+                        <div class="text-2xl md:text-3xl bg-gray-900 p-2 rounded-full">${gadget.icon}</div>
+                    </div>
+                    <p class="text-gray-300 text-xs md:text-sm mb-auto leading-relaxed">${gadget.desc}</p>
+                    ${actionHtml}
+                `;
+                gadgetGrid.appendChild(card);
             });
         }
 
         // Input Handling
-        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, ' ': false };
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false, ' ': false, Shift: false };
         const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, isDown: false };
 
         window.addEventListener('keydown', (e) => { 
             if (keys.hasOwnProperty(e.key)) keys[e.key] = true; 
+            if (e.key === 'Shift') keys.Shift = true;
         });
         window.addEventListener('keyup', (e) => { 
             if (keys.hasOwnProperty(e.key)) keys[e.key] = false; 
+            if (e.key === 'Shift') keys.Shift = false;
         });
         window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
         window.addEventListener('mousedown', () => { mouse.isDown = true; });
@@ -766,6 +888,11 @@
                 abilityBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[' '] = true; }, {passive: false});
                 abilityBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys[' '] = false; }, {passive: false});
                 abilityBtn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys[' '] = false; }, {passive: false});
+
+                const gadgetBtn = document.getElementById('mobile-gadget-btn');
+                gadgetBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.Shift = true; }, {passive: false});
+                gadgetBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.Shift = false; }, {passive: false});
+                gadgetBtn.addEventListener('touchcancel', (e) => { e.preventDefault(); keys.Shift = false; }, {passive: false});
             }
         }
         initMobileControls();
@@ -783,6 +910,7 @@
         let bullets = [];
         let enemies = [];
         let particles = [];
+        let allies = [];
 
         class Tank {
             constructor(x, y, isPlayer, typeId = 'assault', isBoss = false, isHealer = false, isElite = false, bossHasAbility = false) {
@@ -793,6 +921,7 @@
                 this.isHealer = isHealer;
                 this.isElite = isElite;
                 this.isMilestoneBoss = false;
+                this.freezeTimer = 0;
                 
                 if (isPlayer) {
                     this.radius = 20;
@@ -812,6 +941,13 @@
                     this.abilityDuration = cfg.abilityDuration;
                     
                     this.passive = cfg.passive || 'none';
+
+                    // Gadget Initialization
+                    this.gadgetType = tankGadgets[typeId] || 'none';
+                    this.gadgetCooldown = 0;
+                    if (this.gadgetType !== 'none') {
+                        this.gadgetMaxCooldown = GADGET_CLASSES[this.gadgetType].cooldown;
+                    }
                 } else if (isBoss) {
                     let bossScale = 1 + ((currentLevel - 1) * 0.20);
                     
@@ -1063,7 +1199,7 @@
                 ctx.restore();
                 
                 // Frozen effect overlay
-                if ((this.isPlayer && playerFreezeTimer > 0) || (!this.isPlayer && globalFreezeTimer > 0)) {
+                if ((this.isPlayer && playerFreezeTimer > 0) || (!this.isPlayer && (globalFreezeTimer > 0 || this.freezeTimer > 0))) {
                     ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
                     ctx.beginPath();
                     ctx.arc(0, 0, this.radius + 5, 0, Math.PI * 2);
@@ -1176,6 +1312,11 @@
             }
 
             update() {
+                if (this.freezeTimer > 0) {
+                    this.freezeTimer--;
+                    return;
+                }
+                
                 if (this.cooldown > 0) this.cooldown--;
 
                 if (this.isPlayer) {
@@ -1188,6 +1329,8 @@
                     }
                     
                     if (this.abilityCooldown > 0) this.abilityCooldown--;
+                    if (this.gadgetCooldown > 0) this.gadgetCooldown--;
+                    
                     let dx = 0, dy = 0;
 
                     if (!this.abilityActive || (this.abilityType !== 'dash' && this.abilityType !== 'phase')) {
@@ -1240,6 +1383,13 @@
                                 this.activateAbility(targetX, targetY);
                             }
                         }
+                    }
+
+                    // Gadget Trigger
+                    if (keys.Shift && this.gadgetCooldown <= 0 && this.gadgetType !== 'none') {
+                        this.gadgetCooldown = this.gadgetMaxCooldown;
+                        SoundFX.ui();
+                        allies.push(new Ally(this.x, this.y, this.gadgetType, this));
                     }
 
                     if (this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase') && dx === 0 && dy === 0) {
@@ -1440,6 +1590,116 @@
                 } else {
                     this.cooldown = this.fireRate;
                 }
+            }
+        }
+
+        class Ally {
+            constructor(x, y, type, owner) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.owner = owner;
+                this.life = type === 'turret' ? 600 : type === 'drone' ? 300 : 10000; // EMP stays until triggered
+                
+                if (type === 'turret') {
+                    this.radius = 15;
+                    this.fireRate = owner.fireRate * 2; 
+                    this.bulletSpeed = owner.bulletSpeed;
+                    this.bulletDamage = owner.bulletDamage * 0.5;
+                    this.color = '#06b6d4'; // Cyan
+                    this.cooldown = 0;
+                    this.turretAngle = 0;
+                } else if (type === 'emp') {
+                    this.radius = 10;
+                    this.color = '#38bdf8'; // Sky blue
+                    this.triggered = false;
+                } else if (type === 'drone') {
+                    this.radius = 8;
+                    this.color = '#4ade80'; // Green
+                    this.angle = 0;
+                }
+            }
+
+            update() {
+                this.life--;
+                
+                if (this.type === 'turret') {
+                    // Find closest enemy
+                    let closest = null;
+                    let minDist = 900; 
+                    for(let e of enemies) {
+                        let d = Math.hypot(e.x - this.x, e.y - this.y);
+                        if (d < minDist) { minDist = d; closest = e; }
+                    }
+                    if (closest) {
+                        this.turretAngle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                        if (this.cooldown <= 0) {
+                            this.cooldown = this.fireRate;
+                            let tipX = this.x + Math.cos(this.turretAngle) * (this.radius + 10);
+                            let tipY = this.y + Math.sin(this.turretAngle) * (this.radius + 10);
+                            bullets.push(new Bullet(tipX, tipY, this.turretAngle, this.bulletSpeed, this.color, true, this.bulletDamage, false, 'none', false));
+                            createParticles(tipX, tipY, this.color, 3, this.turretAngle + Math.PI, 1, 2);
+                            SoundFX.shoot();
+                        }
+                    }
+                    if (this.cooldown > 0) this.cooldown--;
+                } else if (this.type === 'emp') {
+                    if (!this.triggered) {
+                        for(let e of enemies) {
+                            if (Math.hypot(e.x - this.x, e.y - this.y) < 100) {
+                                this.triggered = true;
+                                this.life = 0; // explode immediately
+                                createParticles(this.x, this.y, '#38bdf8', 40, 0, Math.PI*2, 5, 10);
+                                SoundFX.explosion();
+                                for(let e2 of enemies) {
+                                    if (Math.hypot(e2.x - this.x, e2.y - this.y) < 300) {
+                                        e2.freezeTimer = 180;
+                                    }
+                                }
+                                break;
+                            }
+                        }
+                    }
+                } else if (this.type === 'drone') {
+                    // Orbit player and heal
+                    this.angle += 0.05;
+                    this.x = this.owner.x + Math.cos(this.angle) * 40;
+                    this.y = this.owner.y + Math.sin(this.angle) * 40;
+                    if (frameCount % 10 === 0 && this.owner.health < this.owner.maxHealth) {
+                        this.owner.health = Math.min(this.owner.maxHealth, this.owner.health + 2);
+                        createParticles(this.x, this.y, '#4ade80', 1, 0, Math.PI*2, 2, 1);
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                if (this.type === 'turret') {
+                    ctx.fillStyle = '#334155'; // base
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.rotate(this.turretAngle);
+                    ctx.fillStyle = this.color;
+                    ctx.fillRect(0, -4, this.radius + 10, 8); ctx.strokeRect(0, -4, this.radius + 10, 8);
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius - 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                } else if (this.type === 'emp') {
+                    ctx.fillStyle = (frameCount % 20 < 10) ? '#f87171' : this.color;
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius+5, 0, Math.PI*2); 
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)'; ctx.stroke();
+                } else if (this.type === 'drone') {
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = '#4ade80';
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius-3, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
             }
         }
 
@@ -1714,9 +1974,9 @@
             else if (healthPct > 30) healthBar.className = "h-full bg-yellow-500 transition-all duration-200";
             else healthBar.className = "h-full bg-red-600 transition-all duration-200 animate-pulse";
 
+            // Main Ability HUD
             abilityLabel.innerText = `${TANK_CLASSES[selectedTankType].ability}`;
             let abilityPct = 0;
-            
             if (player.abilityActive) {
                 abilityPct = (player.abilityTimer / player.abilityDuration) * 100;
                 abilityBar.className = "h-full bg-white shadow-[0_0_10px_white]";
@@ -1729,6 +1989,28 @@
                 }
             }
             abilityBar.style.width = `${abilityPct}%`;
+
+            // Gadget HUD
+            const gadgetHud = document.getElementById('gadget-hud-container');
+            const gadgetBtn = document.getElementById('mobile-gadget-btn');
+            
+            if (player.gadgetType && player.gadgetType !== 'none') {
+                gadgetHud.classList.remove('hidden');
+                // Only show gadget button on touch screens
+                if ('ontouchstart' in window || navigator.maxTouchPoints > 0) gadgetBtn.classList.remove('hidden');
+                
+                let gadgetPct = player.gadgetCooldown <= 0 ? 100 : 100 - (player.gadgetCooldown / player.gadgetMaxCooldown) * 100;
+                const gadgetBar = document.getElementById('gadget-bar');
+                gadgetBar.style.width = `${gadgetPct}%`;
+                
+                if (gadgetPct >= 100) gadgetBar.className = "h-full bg-cyan-500 shadow-[0_0_10px_cyan]";
+                else gadgetBar.className = "h-full bg-gray-500";
+                
+                document.getElementById('gadget-label-text').innerText = GADGET_CLASSES[player.gadgetType].name;
+            } else {
+                gadgetHud.classList.add('hidden');
+                gadgetBtn.classList.add('hidden');
+            }
 
             if (isBossLevel && bossEntity) {
                 const bossPct = Math.max(0, (bossEntity.health / bossEntity.maxHealth) * 100);
@@ -1756,6 +2038,14 @@
                 minimapCtx.fillRect(w.x * scaleX, w.y * scaleY, w.width * scaleX, w.height * scaleY);
             }
 
+            // Draw Allies on radar
+            minimapCtx.fillStyle = '#06b6d4';
+            for (let a of allies) {
+                if (a.type !== 'drone') { // skip tiny drones on radar
+                    minimapCtx.fillRect(a.x * scaleX - 1.5, a.y * scaleY - 1.5, 3, 3);
+                }
+            }
+
             minimapCtx.fillStyle = 'rgba(245, 158, 11, 0.8)'; 
             for (let b of bullets) {
                 minimapCtx.fillRect(b.x * scaleX - 1, b.y * scaleY - 1, 2, 2);
@@ -1777,11 +2067,12 @@
             minimapCtx.fillRect(player.x * scaleX - 2, player.y * scaleY - 2, 4, 4);
         }
 
-        function showLevelUpScreen() {
+        function showLevelUpScreen(bountyAmount = 250) {
             isPlaying = false;
             document.getElementById('mobile-controls').classList.add('hidden');
             levelUpScreen.classList.remove('hidden');
             nextLevelDisplay.innerText = currentLevel;
+            document.getElementById('boss-bounty-display').innerText = `+${bountyAmount} 💰`;
             updateHUD();
             saveData(); 
             
@@ -1809,6 +2100,7 @@
             
             enemies = [];
             bullets = [];
+            allies = [];
             generateWalls(); // Generate new map layout every sector!
             
             // Reset healer spawn counters for the new round
@@ -1828,6 +2120,7 @@
             bullets = [];
             enemies = [];
             particles = [];
+            allies = [];
             score = 0;
             currentLevel = 1;
             nextBossTarget = 2000;
@@ -2049,12 +2342,17 @@
                         bossHud.classList.add('hidden');
                         nextBossTarget += 2000;
                         
-                        score += 500; 
-                        playerCredits += 250; 
-                        sessionEarnedCredits += 250;
+                        let bossBounty = 250;
+                        if (e.isMilestoneBoss && e.abilityType !== 'none') bossBounty = 1500;
+                        else if (e.isMilestoneBoss) bossBounty = 1000;
+                        else if (e.abilityType !== 'none') bossBounty = 500;
+                        
+                        score += bossBounty * 2; 
+                        playerCredits += bossBounty; 
+                        sessionEarnedCredits += bossBounty;
                         
                         currentLevel++;
-                        showLevelUpScreen();
+                        showLevelUpScreen(bossBounty);
                     } else if (e.isHealer) {
                         SoundFX.heal();
                         createParticles(e.x, e.y, '#22c55e', 40, 0, Math.PI*2, 6, 8);
@@ -2128,6 +2426,13 @@
             
             frameCount++;
             spawnEnemy();
+
+            for (let i = allies.length - 1; i >= 0; i--) {
+                let ally = allies[i];
+                ally.update();
+                ally.draw();
+                if (ally.life <= 0) allies.splice(i, 1);
+            }
 
             player.update();
             player.draw();
