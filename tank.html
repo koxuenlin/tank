@@ -1515,8 +1515,16 @@
             walls = [];
             if (!wallsEnabled) return;
             const numWalls = 25; // Reduced from 45
-            const centerSafeZone = 1000; // Keep player spawn area clear
+            const safeZoneSize = 1000; // Keep player spawn area clear
             let attempts = 0;
+            
+            // Determine safe zone center (player position if alive, otherwise world center)
+            let safeX = WORLD_WIDTH / 2;
+            let safeY = WORLD_HEIGHT / 2;
+            if (typeof player !== 'undefined' && player) {
+                safeX = player.x;
+                safeY = player.y;
+            }
             
             while (walls.length < numWalls && attempts < 200) {
                 attempts++;
@@ -1525,9 +1533,9 @@
                 let x = Math.random() * (WORLD_WIDTH - w);
                 let y = Math.random() * (WORLD_HEIGHT - h);
                 
-                // Avoid spawning near the center
-                if (x + w > WORLD_WIDTH/2 - centerSafeZone/2 && x < WORLD_WIDTH/2 + centerSafeZone/2 &&
-                    y + h > WORLD_HEIGHT/2 - centerSafeZone/2 && y < WORLD_HEIGHT/2 + centerSafeZone/2) {
+                // Avoid spawning near the player's current position (or center if starting)
+                if (x + w > safeX - safeZoneSize/2 && x < safeX + safeZoneSize/2 &&
+                    y + h > safeY - safeZoneSize/2 && y < safeY + safeZoneSize/2) {
                     continue; 
                 }
                 
