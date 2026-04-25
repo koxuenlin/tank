@@ -485,6 +485,21 @@
                 id: 'drone', name: 'Repair Drone', cost: 25000, icon: '🚁',
                 cooldown: 1200, // 20s
                 desc: 'Deploys a companion drone that follows you and rapidly heals armor for 5 seconds.'
+            },
+            decoy: {
+                id: 'decoy', name: 'Holo-Decoy', cost: 18000, icon: '🕺',
+                cooldown: 1200, // 20s
+                desc: 'Projects a ghostly decoy that draws enemy targeting and movement for 8 seconds.'
+            },
+            swarm: {
+                id: 'swarm', name: 'Seeker Swarm', cost: 20000, icon: '🐝',
+                cooldown: 900, // 15s
+                desc: 'Releases 3 explosive micro-drones that automatically hunt down nearby enemies.'
+            },
+            strike: {
+                id: 'strike', name: 'Orbital Strike', cost: 35000, icon: '🛰️',
+                cooldown: 1500, // 25s
+                desc: 'Calls down a devastating orbital laser explosion at your cursor location.'
             }
         };
 
@@ -1389,7 +1404,23 @@
                     if (keys.Shift && this.gadgetCooldown <= 0 && this.gadgetType !== 'none') {
                         this.gadgetCooldown = this.gadgetMaxCooldown;
                         SoundFX.ui();
-                        allies.push(new Ally(this.x, this.y, this.gadgetType, this));
+                        
+                        if (this.gadgetType === 'strike') {
+                            const targetX = mouse.x + camera.x;
+                            const targetY = mouse.y + camera.y;
+                            allies.push(new Ally(targetX, targetY, 'strike', this));
+                        } else if (this.gadgetType === 'swarm') {
+                            allies.push(new Ally(this.x - 20, this.y, 'swarm', this));
+                            allies.push(new Ally(this.x + 20, this.y + 20, 'swarm', this));
+                            allies.push(new Ally(this.x + 20, this.y - 20, 'swarm', this));
+                        } else if (this.gadgetType === 'decoy') {
+                            let decoy = new Ally(this.x, this.y, 'decoy', this);
+                            decoy.bodyAngle = this.bodyAngle;
+                            decoy.turretAngle = this.turretAngle;
+                            allies.push(decoy);
+                        } else {
+                            allies.push(new Ally(this.x, this.y, this.gadgetType, this));
+                        }
                     }
 
                     if (this.abilityActive && (this.abilityType === 'dash' || this.abilityType === 'phase') && dx === 0 && dy === 0) {
@@ -1420,8 +1451,20 @@
                 } else if (this.isHealer) {
                     if (globalFreezeTimer > 0) return; // Frozen!
                     
-                    const dx = player.x - this.x;
-                    const dy = player.y - this.y;
+                    let targetX = player.x;
+                    let targetY = player.y;
+                    for (let a of allies) {
+                        if (a.type === 'decoy') {
+                            let dDist = Math.hypot(a.x - this.x, a.y - this.y);
+                            if (dDist < 600 && dDist < Math.hypot(targetX - this.x, targetY - this.y)) {
+                                targetX = a.x;
+                                targetY = a.y;
+                            }
+                        }
+                    }
+
+                    const dx = targetX - this.x;
+                    const dy = targetY - this.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     
                     this.turretAngle += 0.05; 
@@ -1470,8 +1513,20 @@
                 } else {
                     if (globalFreezeTimer > 0) return; // Frozen!
 
-                    const dx = player.x - this.x;
-                    const dy = player.y - this.y;
+                    let targetX = player.x;
+                    let targetY = player.y;
+                    for (let a of allies) {
+                        if (a.type === 'decoy') {
+                            let dDist = Math.hypot(a.x - this.x, a.y - this.y);
+                            if (dDist < 600 && dDist < Math.hypot(targetX - this.x, targetY - this.y)) {
+                                targetX = a.x;
+                                targetY = a.y;
+                            }
+                        }
+                    }
+
+                    const dx = targetX - this.x;
+                    const dy = targetY - this.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     
                     // --- Enemy Ability Processing ---
@@ -1599,9 +1654,9 @@
                 this.y = y;
                 this.type = type;
                 this.owner = owner;
-                this.life = type === 'turret' ? 600 : type === 'drone' ? 300 : 10000; // EMP stays until triggered
                 
                 if (type === 'turret') {
+                    this.life = 600;
                     this.radius = 15;
                     this.fireRate = owner.fireRate * 2; 
                     this.bulletSpeed = owner.bulletSpeed;
@@ -1610,12 +1665,27 @@
                     this.cooldown = 0;
                     this.turretAngle = 0;
                 } else if (type === 'emp') {
+                    this.life = 10000;
                     this.radius = 10;
                     this.color = '#38bdf8'; // Sky blue
                     this.triggered = false;
                 } else if (type === 'drone') {
+                    this.life = 300;
                     this.radius = 8;
                     this.color = '#4ade80'; // Green
+                    this.angle = 0;
+                } else if (type === 'decoy') {
+                    this.life = 480; // 8s
+                    this.radius = 20;
+                    this.bodyAngle = 0;
+                    this.turretAngle = 0;
+                } else if (type === 'strike') {
+                    this.life = 90; // 1.5s delay
+                    this.radius = 0;
+                } else if (type === 'swarm') {
+                    this.life = 600; // 10s
+                    this.radius = 6;
+                    this.color = '#facc15'; // Yellow
                     this.angle = 0;
                 }
             }
@@ -1669,6 +1739,35 @@
                         this.owner.health = Math.min(this.owner.maxHealth, this.owner.health + 2);
                         createParticles(this.x, this.y, '#4ade80', 1, 0, Math.PI*2, 2, 1);
                     }
+                } else if (this.type === 'strike') {
+                    if (this.life === 0) {
+                        SoundFX.bossExplosion();
+                        createParticles(this.x, this.y, '#ef4444', 100, 0, Math.PI*2, 10, 20);
+                        createParticles(this.x, this.y, '#f97316', 50, 0, Math.PI*2, 8, 15);
+                        for (let e of enemies) {
+                            if (Math.hypot(e.x - this.x, e.y - this.y) < 250) {
+                                e.health -= 300;
+                            }
+                        }
+                    }
+                } else if (this.type === 'swarm') {
+                    let closest = null;
+                    let minDist = 1500; 
+                    for(let e of enemies) {
+                        let d = Math.hypot(e.x - this.x, e.y - this.y);
+                        if (d < minDist) { minDist = d; closest = e; }
+                    }
+                    if (closest) {
+                        this.angle = Math.atan2(closest.y - this.y, closest.x - this.x);
+                        this.x += Math.cos(this.angle) * 7;
+                        this.y += Math.sin(this.angle) * 7;
+                        if (minDist < closest.radius + this.radius) {
+                            this.life = 0;
+                            SoundFX.explosion();
+                            createParticles(this.x, this.y, '#facc15', 20, 0, Math.PI*2, 4, 8);
+                            closest.health -= 80;
+                        }
+                    }
                 }
             }
 
@@ -1698,6 +1797,40 @@
                     ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
                     ctx.fillStyle = '#4ade80';
                     ctx.beginPath(); ctx.arc(0, 0, this.radius-3, 0, Math.PI*2); ctx.fill();
+                } else if (this.type === 'swarm') {
+                    ctx.rotate(this.angle);
+                    ctx.fillStyle = this.color;
+                    ctx.strokeStyle = '#000000';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(12, 0); ctx.lineTo(-6, 6); ctx.lineTo(-6, -6); ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+                } else if (this.type === 'strike') {
+                    ctx.strokeStyle = `rgba(239, 68, 68, ${this.life % 20 > 10 ? 0.8 : 0.3})`;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI*2); ctx.stroke();
+                    ctx.fillStyle = 'rgba(239, 68, 68, 0.1)';
+                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(0, 0, 10 + (90 - this.life) * 2, 0, Math.PI*2); ctx.stroke();
+                } else if (this.type === 'decoy') {
+                    ctx.globalAlpha = 0.4 + (Math.sin(frameCount * 0.1) * 0.1);
+                    
+                    ctx.rotate(this.bodyAngle);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    if (typeof ctx.roundRect === 'function') {
+                        ctx.roundRect(-20, -20, 40, 40, 8);
+                    } else {
+                        ctx.strokeRect(-20, -20, 40, 40);
+                    }
+                    ctx.stroke();
+                    
+                    ctx.rotate(-this.bodyAngle);
+                    ctx.rotate(this.turretAngle);
+                    ctx.strokeRect(0, -5, 35, 10);
+                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.stroke();
+                    
+                    ctx.globalAlpha = 1.0;
                 }
                 ctx.restore();
             }
