@@ -48,17 +48,6 @@
             to { box-shadow: 0 0 30px rgba(220, 38, 38, 0.9); border-color: #ef4444; }
         }
     </style>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        window.Firebase = { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, getFirestore, collection, doc, setDoc, onSnapshot, deleteDoc, updateDoc };
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            window.dispatchEvent(new Event('firebase-loaded'));
-        });
-    </script>
 </head>
 <body>
 
@@ -99,7 +88,6 @@
         </div>
 
         <div id="hud" class="w-full p-4 flex justify-between items-start hidden mt-16 md:mt-0 z-20 pointer-events-none">
-            <div id="multiplayer-status" class="absolute top-20 left-4 text-xs font-bold text-green-400 font-game hidden shadow-md bg-gray-900/80 px-2 py-1 rounded">🟢 ONLINE</div>
             <div class="flex flex-wrap gap-4 pointer-events-none mt-6 md:mt-0">
                 <div class="bg-gray-800/80 backdrop-blur border border-gray-700 p-4 rounded-xl shadow-lg">
                     <div class="text-gray-400 text-xs font-bold tracking-widest mb-1">ARMOR</div>
@@ -162,21 +150,6 @@
                     <span class="text-gray-400 font-bold tracking-widest">WALLS:</span>
                     <span id="wall-toggle-text" class="font-game text-green-400 text-xl font-bold">ON</span>
                 </button>
-                
-                <button onclick="toggleGameMode()" id="mode-toggle-btn" class="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-full border border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)] transition transform active:scale-95">
-                    <span class="text-xl">🌐</span>
-                    <span class="text-gray-400 font-bold tracking-widest">MODE:</span>
-                    <span id="mode-toggle-text" class="font-game text-purple-400 text-xl font-bold">ONLINE</span>
-                </button>
-            </div>
-
-            <!-- Username Input Container -->
-            <div id="username-container" class="mb-8 w-full max-w-sm hidden">
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 text-xl">👤</span>
-                    <input type="text" id="username-input" placeholder="Enter Username..." maxlength="15" class="w-full bg-gray-800 border-2 border-purple-500 text-white font-game text-xl py-3 pl-12 pr-6 rounded-full focus:outline-none focus:border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)] placeholder-gray-500 transition-colors">
-                </div>
-                <p id="username-error" class="text-red-400 text-sm font-bold mt-2 text-center hidden">Username is required for Multiplayer!</p>
             </div>
 
             <div class="flex flex-col md:flex-row gap-4 mb-8 w-full md:w-auto px-6">
@@ -378,116 +351,6 @@
         let bossEntity = null;
         let nextBossTarget = 2000; // Boss target
 
-        // Multiplayer State
-        let db, auth, currentUser, playersRef, playerDocRef;
-        const otherPlayers = {};
-        const remoteTanks = {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tank-game-multiplayer';
-
-        window.addEventListener('firebase-loaded', async () => {
-            if (typeof __firebase_config === 'undefined') return;
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = window.Firebase.initializeApp(firebaseConfig);
-            auth = window.Firebase.getAuth(app);
-            db = window.Firebase.getFirestore(app);
-
-            const initAuth = async () => {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await window.Firebase.signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await window.Firebase.signInAnonymously(auth);
-                }
-            };
-            await initAuth();
-
-            window.Firebase.onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    currentUser = user;
-                    if (gameMode === 'multi') document.getElementById('multiplayer-status').classList.remove('hidden');
-                    playersRef = window.Firebase.collection(db, 'artifacts', appId, 'public', 'data', 'players');
-                    playerDocRef = window.Firebase.doc(playersRef, user.uid);
-                    
-                    window.Firebase.onSnapshot(playersRef, (snapshot) => {
-                        if (gameMode !== 'multi') return; // Ignore updates if in single player
-                        snapshot.docChanges().forEach((change) => {
-                            const data = change.doc.data();
-                            const id = change.doc.id;
-                            
-                            if (id === user.uid) return;
-
-                            if (change.type === "added" || change.type === "modified") {
-                                if (data.shootEvent && (!otherPlayers[id] || otherPlayers[id].shootEvent.id !== data.shootEvent.id)) {
-                                    if (data.shootEvent.bullets) {
-                                        data.shootEvent.bullets.forEach(bData => {
-                                            bullets.push(new Bullet(bData.x, bData.y, bData.angle, bData.speed, bData.color, false, bData.damage, bData.isCloaked, bData.passive, bData.isPiercing, true));
-                                        });
-                                    }
-                                }
-                                
-                                otherPlayers[id] = data;
-                                
-                                if (!data.isDead) {
-                                    if (!remoteTanks[id]) {
-                                        remoteTanks[id] = new Tank(data.x, data.y, false, data.typeId, false, false, false);
-                                        remoteTanks[id].playerName = data.username;
-                                    }
-                                    let rt = remoteTanks[id];
-                                    rt.x = data.x;
-                                    rt.y = data.y;
-                                    rt.bodyAngle = data.bodyAngle;
-                                    rt.turretAngle = data.turretAngle;
-                                    rt.health = data.health;
-                                    rt.maxHealth = data.maxHealth;
-                                    rt.color = data.color;
-                                    rt.barrelColor = data.barrelColor;
-                                    rt.abilityActive = data.abilityActive;
-                                    rt.abilityType = data.abilityType;
-                                    rt.radius = data.radius;
-                                } else {
-                                    if (remoteTanks[id]) {
-                                        createParticles(remoteTanks[id].x, remoteTanks[id].y, remoteTanks[id].color, 30);
-                                        delete remoteTanks[id];
-                                    }
-                                }
-                            }
-                            if (change.type === "removed") {
-                                delete otherPlayers[id];
-                                delete remoteTanks[id];
-                            }
-                        });
-                    }, (err) => console.error(err));
-                    
-                    setInterval(syncPlayerState, 100);
-                    
-                    window.addEventListener('beforeunload', () => {
-                        window.Firebase.deleteDoc(playerDocRef);
-                    });
-                }
-            });
-        });
-
-        function syncPlayerState() {
-            if (!currentUser || !player || gameMode !== 'multi') return;
-            window.Firebase.setDoc(playerDocRef, {
-                x: player.x,
-                y: player.y,
-                bodyAngle: player.bodyAngle,
-                turretAngle: player.turretAngle,
-                health: player.health,
-                maxHealth: player.maxHealth,
-                color: player.color,
-                barrelColor: player.barrelColor,
-                radius: player.radius,
-                abilityActive: player.abilityActive,
-                abilityType: player.abilityType,
-                typeId: selectedTankType,
-                shootEvent: player.lastShootEvent || null,
-                score: score,
-                username: playerUsername,
-                isDead: !isPlaying || player.health <= 0
-            }, { merge: true }).catch(e => console.error(e));
-        }
-
         // Persistent Data (Shop System)
         let playerCredits = 0;
         let ownedTanks = ['assault'];
@@ -496,8 +359,6 @@
         let selectedTankType = 'assault';
         let sessionEarnedCredits = 0;
         let wallsEnabled = true;
-        let gameMode = 'multi'; // 'single' or 'multi'
-        let playerUsername = "";
         let tankUpgrades = {
             assault: { hp: 0, speed: 0, dmg: 0 },
             juggernaut: { hp: 0, speed: 0, dmg: 0 },
@@ -653,8 +514,6 @@
                 if (savedData.tankGadgets) tankGadgets = savedData.tankGadgets;
                 if (savedData.wallsEnabled !== undefined) wallsEnabled = savedData.wallsEnabled;
                 if (savedData.soundEnabled !== undefined) soundEnabled = savedData.soundEnabled;
-                if (savedData.gameMode !== undefined) gameMode = savedData.gameMode;
-                if (savedData.playerUsername !== undefined) playerUsername = savedData.playerUsername;
                 if (savedData.upgrades) {
                     for (let key in savedData.upgrades) {
                         if (tankUpgrades[key]) {
@@ -675,52 +534,10 @@
                     tankGadgets: tankGadgets,
                     wallsEnabled: wallsEnabled,
                     soundEnabled: soundEnabled,
-                    gameMode: gameMode,
-                    playerUsername: playerUsername,
                     upgrades: tankUpgrades
                 }));
             } catch(e) {}
             updateCreditDisplays();
-        }
-
-        function toggleGameMode() {
-            SoundFX.init();
-            SoundFX.ui();
-            gameMode = gameMode === 'multi' ? 'single' : 'multi';
-            
-            if (gameMode === 'single') {
-                if (playerDocRef && window.Firebase) {
-                    window.Firebase.deleteDoc(playerDocRef).catch(e => {});
-                }
-                for (let id in remoteTanks) delete remoteTanks[id];
-                for (let id in otherPlayers) delete otherPlayers[id];
-            }
-            
-            updateModeToggleUI();
-            saveData();
-        }
-
-        function updateModeToggleUI() {
-            const btn = document.getElementById('mode-toggle-btn');
-            const text = document.getElementById('mode-toggle-text');
-            const status = document.getElementById('multiplayer-status');
-            const usernameContainer = document.getElementById('username-container');
-            
-            if (!btn || !text || !status) return;
-            
-            if (gameMode === 'multi') {
-                btn.className = "flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-full border border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.3)] transition transform active:scale-95";
-                text.className = "font-game text-purple-400 text-xl font-bold";
-                text.innerText = "ONLINE";
-                if (currentUser) status.classList.remove('hidden');
-                if (usernameContainer) usernameContainer.classList.remove('hidden');
-            } else {
-                btn.className = "flex items-center gap-2 bg-gray-800 hover:bg-gray-700 px-6 py-3 rounded-full border border-gray-500 transition transform active:scale-95";
-                text.className = "font-game text-gray-400 text-xl font-bold";
-                text.innerText = "SOLO";
-                status.classList.add('hidden');
-                if (usernameContainer) usernameContainer.classList.add('hidden');
-            }
         }
 
         function toggleSound() {
@@ -773,13 +590,9 @@
         }
 
         // Initialize UI
-        if (playerUsername) {
-            document.getElementById('username-input').value = playerUsername;
-        }
         updateCreditDisplays();
         updateWallToggleUI();
         updateSoundToggleUI();
-        updateModeToggleUI();
 
         // Shop UI Logic
         function openShop() {
@@ -1402,16 +1215,6 @@
                 
                 ctx.restore();
                 
-                if (this.playerName) {
-                    ctx.save();
-                    ctx.translate(this.x, this.y);
-                    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-                    ctx.font = 'bold 12px Orbitron';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(this.playerName, 0, -this.radius - 15);
-                    ctx.restore();
-                }
-                
                 // Frozen effect overlay
                 if ((this.isPlayer && playerFreezeTimer > 0) || (!this.isPlayer && (globalFreezeTimer > 0 || this.freezeTimer > 0))) {
                     ctx.fillStyle = 'rgba(56, 189, 248, 0.4)';
@@ -1829,7 +1632,6 @@
             }
 
             shoot() {
-                let spawnedBullets = [];
                 if (this.isBoss) {
                     SoundFX.bossShoot();
                     const spreadAngles = this.isMilestoneBoss ? [-0.3, -0.15, 0, 0.15, 0.3] : [-0.2, 0, 0.2];
@@ -1839,7 +1641,6 @@
                         const tipY = this.y + Math.sin(angle) * (this.radius + 15);
                         let b = new Bullet(tipX, tipY, angle, this.bulletSpeed, this.color, false, this.bulletDamage, false, 'none', false);
                         bullets.push(b);
-                        spawnedBullets.push(b);
                     });
                     createParticles(this.x + Math.cos(this.turretAngle)*this.radius, this.y + Math.sin(this.turretAngle)*this.radius, '#f87171', 15, this.turretAngle + Math.PI, 1.5, 4);
                 } else {
@@ -1849,15 +1650,7 @@
                     let isPiercing = (this.abilityActive && this.abilityType === 'pierce');
                     let b = new Bullet(tipX, tipY, this.turretAngle, this.bulletSpeed, this.isPlayer ? this.color : '#f87171', this.isPlayer, this.bulletDamage, this.isPlayer && this.abilityType === 'cloak' ? true : false, this.passive, isPiercing);
                     bullets.push(b);
-                    spawnedBullets.push(b);
                     createParticles(tipX, tipY, this.isPlayer ? this.color : '#f87171', 4, this.turretAngle + Math.PI, 1.5, 3);
-                }
-                
-                if (this.isPlayer) {
-                    this.lastShootEvent = {
-                        id: Math.random().toString(36).substr(2, 9),
-                        bullets: spawnedBullets.map(b => ({ x: b.x, y: b.y, angle: Math.atan2(b.vy, b.vx), speed: Math.hypot(b.vx, b.vy), color: b.color, damage: b.damage, isCloaked: b.isCloakedShot, passive: b.passive, isPiercing: b.isPiercing }))
-                    };
                 }
 
                 if (this.abilityActive && this.abilityType === 'overdrive') {
@@ -2057,7 +1850,7 @@
         }
 
         class Bullet {
-            constructor(x, y, angle, speed, color, isPlayer, damage, isCloakedShot, passive = 'none', isPiercing = false, isRemote = false) {
+            constructor(x, y, angle, speed, color, isPlayer, damage, isCloakedShot, passive = 'none', isPiercing = false) {
                 this.x = x;
                 this.y = y;
                 this.vx = Math.cos(angle) * speed;
@@ -2073,7 +1866,6 @@
                 this.bounces = 0;
                 this.maxBounces = (passive === 'bounce') ? 2 : 0;
                 this.isPiercing = isPiercing;
-                this.isRemote = isRemote;
                 this.piercedEntities = new Set();
             }
 
@@ -2392,12 +2184,6 @@
                 minimapCtx.fillRect(w.x * scaleX, w.y * scaleY, w.width * scaleX, w.height * scaleY);
             }
 
-            // Draw Remote Players on radar
-            minimapCtx.fillStyle = '#a855f7';
-            for (let id in remoteTanks) {
-                minimapCtx.fillRect(remoteTanks[id].x * scaleX - 3, remoteTanks[id].y * scaleY - 3, 6, 6);
-            }
-
             // Draw Allies on radar
             minimapCtx.fillStyle = '#06b6d4';
             for (let a of allies) {
@@ -2472,26 +2258,6 @@
         }
 
         function startGame() {
-            if (gameMode === 'multi') {
-                const nameInput = document.getElementById('username-input').value.trim();
-                if (!nameInput) {
-                    const inputEl = document.getElementById('username-input');
-                    const errorEl = document.getElementById('username-error');
-                    inputEl.classList.remove('border-purple-500');
-                    inputEl.classList.add('border-red-500');
-                    errorEl.classList.remove('hidden');
-                    
-                    setTimeout(() => {
-                        inputEl.classList.remove('border-red-500');
-                        inputEl.classList.add('border-purple-500');
-                        errorEl.classList.add('hidden');
-                    }, 2000);
-                    return; // Abort game start
-                }
-                playerUsername = nameInput;
-                saveData();
-            }
-
             SoundFX.init();
             SoundFX.ui();
             resize();
@@ -2598,7 +2364,7 @@
                 if (!b.isPlayer) {
                     const dx = b.x - player.x;
                     const dy = b.y - player.y;
-                    if (Math.sqrt(dx*dx + dy*dy) < player.radius + b.radius && isPlaying) {
+                    if (Math.sqrt(dx*dx + dy*dy) < player.radius + b.radius) {
                         
                         if (b.isPiercing && b.piercedEntities.has(player)) continue; // Already hit
 
@@ -2648,55 +2414,6 @@
                         }
                         continue;
                     }
-                    
-                    // PvE: Let remote bullets hit local enemies too!
-                    if (b.isRemote) {
-                        for (let j = enemies.length - 1; j >= 0; j--) {
-                            const e = enemies[j];
-                            const edx = b.x - e.x;
-                            const edy = b.y - e.y;
-                            if (Math.sqrt(edx*edx + edy*edy) < e.radius + b.radius) {
-                                if (b.isPiercing && b.piercedEntities.has(e)) continue;
-
-                                if (e.abilityActive && (e.abilityType === 'dash' || e.abilityType === 'phase')) {
-                                    if (frameCount % 3 === 0) createParticles(b.x, b.y, e.color, 2, 0, Math.PI*2, 2, 3);
-                                    continue; 
-                                }
-                                if (e.abilityActive && e.abilityType === 'shield') {
-                                    SoundFX.bounce();
-                                    createParticles(b.x, b.y, '#4ade80', 5, 0, Math.PI*2, 2, 4);
-                                    bullets.splice(i, 1);
-                                    hit = true;
-                                    break;
-                                }
-
-                                if (b.passive === 'explosive') {
-                                    SoundFX.explosion();
-                                    createParticles(b.x, b.y, '#f97316', 30, 0, Math.PI*2, 8, 10);
-                                    createParticles(b.x, b.y, '#fbbf24', 20, 0, Math.PI*2, 5, 12);
-                                    enemies.forEach(other => {
-                                        if (Math.hypot(other.x - b.x, other.y - b.y) < 150) other.health -= b.damage * 0.75;
-                                    });
-                                    bullets.splice(i, 1);
-                                    hit = true;
-                                    break;
-                                }
-
-                                SoundFX.hit();
-                                e.health -= b.damage;
-                                createParticles(b.x, b.y, '#ef4444', 10);
-                                
-                                if (b.isPiercing) {
-                                    b.piercedEntities.add(e);
-                                } else {
-                                    bullets.splice(i, 1);
-                                    hit = true;
-                                }
-                                if (hit) break;
-                            }
-                        }
-                    }
-                    if (hit) continue;
                 }
 
                 if (b.isPlayer) {
@@ -2752,27 +2469,6 @@
                             }
                             
                             if (hit) break; 
-                        }
-                    }
-                    
-                    // PvP: Detect hits against remote players (visual only, they handle their own damage)
-                    if (!hit) {
-                        for (let id in remoteTanks) {
-                            let rt = remoteTanks[id];
-                            if (b.isPiercing && b.piercedEntities.has(rt)) continue;
-                            const rdx = b.x - rt.x;
-                            const rdy = b.y - rt.y;
-                            if (Math.sqrt(rdx*rdx + rdy*rdy) < rt.radius + b.radius) {
-                                createParticles(b.x, b.y, rt.color, 10);
-                                SoundFX.hit();
-                                if (b.isPiercing) {
-                                    b.piercedEntities.add(rt);
-                                } else if (player.abilityType !== 'cloak') {
-                                    bullets.splice(i, 1);
-                                    hit = true;
-                                }
-                                break;
-                            }
                         }
                     }
 
@@ -2883,10 +2579,6 @@
                 ally.update();
                 ally.draw();
                 if (ally.life <= 0) allies.splice(i, 1);
-            }
-
-            for (let id in remoteTanks) {
-                remoteTanks[id].draw();
             }
 
             player.update();
