@@ -116,6 +116,12 @@
         </div>
 
         <div id="start-screen" class="interactive absolute inset-0 flex flex-col items-center justify-center bg-gray-900/90 backdrop-blur-sm z-50">
+            
+            <!-- Sound Toggle Button -->
+            <button onclick="toggleSound()" id="sound-toggle-btn" class="absolute top-4 right-4 md:top-8 md:right-8 bg-gray-800 hover:bg-gray-700 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full border-2 border-gray-600 transition transform active:scale-95 shadow-lg z-50">
+                <span id="sound-toggle-icon" class="text-2xl md:text-3xl">🔊</span>
+            </button>
+
             <div class="text-7xl mb-6">🎯🪖</div>
             <h1 class="text-4xl md:text-6xl font-game font-bold text-white mb-2 tracking-wider text-center">TANK <span class="text-blue-500">ASSAULT</span></h1>
             <p class="text-gray-400 mb-6 text-sm md:text-lg text-center max-w-md">Survive the escalating waves in a massive open battlefield.</p>
@@ -213,6 +219,7 @@
 
     <script>
         // --- Web Audio Sound System ---
+        let soundEnabled = true;
         const SoundFX = {
             ctx: null,
             init: function() {
@@ -224,7 +231,7 @@
                 }
             },
             playTone: function(freq, type, duration, vol=0.1, slideFreq=null) {
-                if (!this.ctx) return;
+                if (!this.ctx || !soundEnabled) return;
                 const osc = this.ctx.createOscillator();
                 const gain = this.ctx.createGain();
                 osc.type = type;
@@ -240,7 +247,7 @@
                 osc.stop(this.ctx.currentTime + duration);
             },
             playNoise: function(duration, vol=0.1) {
-                if (!this.ctx) return;
+                if (!this.ctx || !soundEnabled) return;
                 const bufferSize = this.ctx.sampleRate * duration;
                 const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -452,6 +459,7 @@
                 ownedTanks = savedData.owned || ['assault'];
                 selectedTankType = savedData.selected || 'assault';
                 if (savedData.wallsEnabled !== undefined) wallsEnabled = savedData.wallsEnabled;
+                if (savedData.soundEnabled !== undefined) soundEnabled = savedData.soundEnabled;
                 if (savedData.upgrades) {
                     for (let key in savedData.upgrades) {
                         if (tankUpgrades[key]) {
@@ -469,10 +477,32 @@
                     owned: ownedTanks,
                     selected: selectedTankType,
                     wallsEnabled: wallsEnabled,
+                    soundEnabled: soundEnabled,
                     upgrades: tankUpgrades
                 }));
             } catch(e) {}
             updateCreditDisplays();
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            updateSoundToggleUI();
+            saveData();
+            if (soundEnabled) {
+                SoundFX.init();
+                SoundFX.ui();
+            }
+        }
+
+        function updateSoundToggleUI() {
+            const icon = document.getElementById('sound-toggle-icon');
+            const btn = document.getElementById('sound-toggle-btn');
+            if (icon && btn) {
+                icon.innerText = soundEnabled ? "🔊" : "🔇";
+                btn.className = soundEnabled 
+                    ? "absolute top-4 right-4 md:top-8 md:right-8 bg-gray-800 hover:bg-gray-700 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full border-2 border-gray-600 transition transform active:scale-95 shadow-lg z-50"
+                    : "absolute top-4 right-4 md:top-8 md:right-8 bg-red-900/80 hover:bg-red-800/80 w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-full border-2 border-red-500 transition transform active:scale-95 shadow-lg z-50";
+            }
         }
 
         function toggleWalls() {
@@ -506,6 +536,7 @@
         // Initialize UI
         updateCreditDisplays();
         updateWallToggleUI();
+        updateSoundToggleUI();
 
         // Shop UI Logic
         function openShop() {
